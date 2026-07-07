@@ -1,0 +1,236 @@
+[
+  {
+    "title": "유효한 점수의 평균",
+    "level": "easy",
+    "tags": ["null_missing_value", "data_validation", "edge_case", "string_handling"],
+    "statement": "N개의 값이 주어진다. 각 값은 정수 점수이거나 NONE이다. NONE을 제외한 점수들의 평균을 소수 첫째 자리까지 출력하라. 유효한 점수가 하나도 없으면 EMPTY를 출력하라.",
+    "input": "첫째 줄에 N이 주어진다. 둘째 줄에 공백으로 구분된 N개의 값이 주어진다.",
+    "output": "유효한 점수의 평균을 소수 첫째 자리까지 출력한다. 유효한 점수가 없으면 EMPTY를 출력한다.",
+    "constraints": ["1 <= N <= 100000", "점수는 0 이상 100 이하의 정수 또는 NONE"],
+    "examples": [
+      {"input": "4\n90 80 NONE 70", "output": "80.0"},
+      {"input": "3\nNONE NONE NONE", "output": "EMPTY"}
+    ]
+  },
+  {
+    "title": "깨진 블록 복원",
+    "level": "easy",
+    "tags": ["syntax_structure", "readability"],
+    "statement": "줄 앞의 공백 개수가 섞여 있는 의사 코드가 주어진다. 각 줄의 앞에 적힌 숫자 K만큼 공백을 붙여 파이썬 코드 블록 형태로 복원하라.",
+    "input": "첫째 줄에 줄 수 N이 주어진다. 다음 N개 줄에는 K와 코드 문자열 S가 주어진다.",
+    "output": "각 줄 앞에 공백 K개를 붙인 코드를 출력한다.",
+    "constraints": ["1 <= N <= 100", "0 <= K <= 20"],
+    "examples": [
+      {"input": "3\n0 def f():\n4 x=1\n4 return x", "output": "def f():\n    x=1\n    return x"}
+    ]
+  },
+  {
+    "title": "안전한 리스트 조회",
+    "level": "easy",
+    "tags": ["array_collection", "buffer_boundary", "edge_case"],
+    "statement": "정수 리스트와 여러 인덱스 질의가 주어진다. 인덱스가 유효하면 해당 값을 출력하고, 범위를 벗어나면 OUT을 출력하라.",
+    "input": "첫째 줄에 N과 Q가 주어진다. 둘째 줄에 N개의 정수가 주어진다. 다음 Q개 줄에 인덱스 i가 주어진다.",
+    "output": "각 질의마다 리스트 값 또는 OUT을 한 줄에 출력한다.",
+    "constraints": ["0 <= N <= 100000", "1 <= Q <= 100000", "-100000 <= i <= 100000"],
+    "examples": [
+      {"input": "3 4\n10 20 30\n0\n2\n3\n-1", "output": "10\n30\nOUT\nOUT"}
+    ]
+  },
+  {
+    "title": "CSV 정수 파서",
+    "level": "easy",
+    "tags": ["data_format_parsing", "exception_handling", "data_validation"],
+    "statement": "쉼표로 구분된 문자열이 주어진다. 정수로 변환 가능한 토큰만 합산하고, 변환할 수 없는 토큰의 개수를 함께 출력하라.",
+    "input": "첫째 줄에 CSV 문자열 S가 주어진다.",
+    "output": "정수 토큰의 합과 잘못된 토큰 개수를 공백으로 구분해 출력한다.",
+    "constraints": ["1 <= |S| <= 100000", "토큰은 쉼표로 구분된다"],
+    "examples": [
+      {"input": "10,abc,20,,3", "output": "33 2"}
+    ]
+  },
+  {
+    "title": "중복 숫자 찾기",
+    "level": "medium",
+    "tags": ["time_complexity", "data_structure_choice", "performance_runtime"],
+    "statement": "N개의 정수가 주어진다. 한 번이라도 중복 등장한 숫자를 오름차순으로 출력하라. 중복 숫자가 없으면 NONE을 출력하라.",
+    "input": "첫째 줄에 N이 주어진다. 둘째 줄에 N개의 정수가 주어진다.",
+    "output": "중복 등장한 숫자를 오름차순으로 출력한다. 없으면 NONE을 출력한다.",
+    "constraints": ["1 <= N <= 200000", "-1000000000 <= 값 <= 1000000000"],
+    "examples": [
+      {"input": "7\n3 1 2 3 2 4 5", "output": "2 3"}
+    ]
+  },
+  {
+    "title": "등급 계산기",
+    "level": "easy",
+    "tags": ["conditional", "operator_logic", "test_coverage"],
+    "statement": "0 이상 100 이하의 점수 N이 주어진다. 90 이상은 A, 80 이상은 B, 70 이상은 C, 60 이상은 D, 그 외는 F를 출력하라.",
+    "input": "첫째 줄에 점수 N이 주어진다.",
+    "output": "등급 문자 하나를 출력한다.",
+    "constraints": ["0 <= N <= 100"],
+    "examples": [
+      {"input": "90", "output": "A"},
+      {"input": "59", "output": "F"}
+    ]
+  },
+  {
+    "title": "카운트다운",
+    "level": "easy",
+    "tags": ["loop_control", "edge_case", "operator_logic"],
+    "statement": "정수 N이 주어진다. N부터 0까지 1씩 감소하며 출력하라. N이 음수이면 EMPTY를 출력하라.",
+    "input": "첫째 줄에 정수 N이 주어진다.",
+    "output": "N부터 0까지 한 줄에 하나씩 출력하거나 EMPTY를 출력한다.",
+    "constraints": ["-100 <= N <= 100000"],
+    "examples": [
+      {"input": "3", "output": "3\n2\n1\n0"},
+      {"input": "-1", "output": "EMPTY"}
+    ]
+  },
+  {
+    "title": "연결 요소 개수",
+    "level": "medium",
+    "tags": ["recursion", "edge_case", "algo_selection"],
+    "statement": "무방향 그래프가 주어진다. 그래프의 연결 요소 개수를 구하라.",
+    "input": "첫째 줄에 정점 수 N과 간선 수 M이 주어진다. 다음 M개 줄에 간선 u v가 주어진다.",
+    "output": "연결 요소의 개수를 출력한다.",
+    "constraints": ["1 <= N <= 100000", "0 <= M <= 200000", "1 <= u, v <= N"],
+    "examples": [
+      {"input": "5 3\n1 2\n2 3\n4 5", "output": "2"}
+    ]
+  },
+  {
+    "title": "API 응답 검증",
+    "level": "medium",
+    "tags": ["api_misuse", "io_network", "exception_handling", "error_propagation"],
+    "statement": "여러 API 응답 상태가 주어진다. 각 응답이 OK이면 SUCCESS, TIMEOUT이면 RETRY, 그 외 실패는 FAIL을 출력하라.",
+    "input": "첫째 줄에 N이 주어진다. 다음 N개 줄에 상태 문자열이 주어진다.",
+    "output": "각 상태에 대한 처리 결과를 한 줄씩 출력한다.",
+    "constraints": ["1 <= N <= 1000", "상태는 OK, TIMEOUT, BAD_REQUEST, SERVER_ERROR 중 하나"],
+    "examples": [
+      {"input": "3\nOK\nTIMEOUT\nSERVER_ERROR", "output": "SUCCESS\nRETRY\nFAIL"}
+    ]
+  },
+  {
+    "title": "원본 보존 업데이트",
+    "level": "medium",
+    "tags": ["state_management", "side_effect", "assignment_mutability"],
+    "statement": "정수 배열 A와 업데이트 위치 i, 값 x가 주어진다. 원본 배열 A와 업데이트가 반영된 새 배열 B를 각각 출력하라.",
+    "input": "첫째 줄에 N이 주어진다. 둘째 줄에 N개의 정수가 주어진다. 셋째 줄에 i와 x가 주어진다.",
+    "output": "첫째 줄에 원본 배열, 둘째 줄에 업데이트된 배열을 출력한다.",
+    "constraints": ["1 <= N <= 100000", "0 <= i < N"],
+    "examples": [
+      {"input": "3\n1 2 3\n1 9", "output": "1 2 3\n1 9 3"}
+    ]
+  },
+  {
+    "title": "환경 변수 확인",
+    "level": "easy",
+    "tags": ["dependency_config", "secret_handling", "resource_management"],
+    "statement": "환경 변수 이름들이 주어진다. 각 이름이 설정되어 있으면 SET, 비어 있거나 없으면 MISSING을 출력하라.",
+    "input": "첫째 줄에 N이 주어진다. 다음 N개 줄에 환경 변수 이름이 주어진다.",
+    "output": "각 환경 변수에 대해 SET 또는 MISSING을 출력한다.",
+    "constraints": ["1 <= N <= 100"],
+    "examples": [
+      {"input": "2\nPATH\nGEMINI_API_KEY", "output": "SET\nMISSING"}
+    ]
+  },
+  {
+    "title": "권한 검사",
+    "level": "medium",
+    "tags": ["auth_access_control", "security_input"],
+    "statement": "사용자 역할과 요청한 작업이 주어진다. ADMIN은 모든 작업 가능, USER는 READ만 가능, GUEST는 아무 작업도 불가능하다. 허용 여부를 출력하라.",
+    "input": "첫째 줄에 Q가 주어진다. 다음 Q개 줄에 role action이 주어진다.",
+    "output": "각 요청마다 ALLOW 또는 DENY를 출력한다.",
+    "constraints": ["1 <= Q <= 10000", "role은 ADMIN, USER, GUEST", "action은 READ, WRITE, DELETE"],
+    "examples": [
+      {"input": "3\nADMIN DELETE\nUSER WRITE\nUSER READ", "output": "ALLOW\nDENY\nALLOW"}
+    ]
+  },
+  {
+    "title": "긴 함수 나누기",
+    "level": "easy",
+    "tags": ["readability", "clean_code", "maintainability_design"],
+    "statement": "상품 가격 목록과 할인율이 주어진다. 할인 적용, 세금 10% 적용, 총합 계산을 각각 함수로 나누어 최종 금액을 출력하라.",
+    "input": "첫째 줄에 N과 할인율 D가 주어진다. 둘째 줄에 N개의 가격이 주어진다.",
+    "output": "최종 금액을 소수 둘째 자리까지 출력한다.",
+    "constraints": ["1 <= N <= 1000", "0 <= D <= 100", "0 <= 가격 <= 1000000"],
+    "examples": [
+      {"input": "3 10\n100 200 300", "output": "594.00"}
+    ]
+  },
+  {
+    "title": "페이지 범위 계산",
+    "level": "medium",
+    "tags": ["database_query", "performance_runtime", "data_validation"],
+    "statement": "전체 데이터 수 total, 페이지 번호 page, 페이지 크기 size가 주어진다. 해당 페이지의 시작 인덱스와 끝 인덱스를 출력하라. 잘못된 page 또는 size이면 INVALID를 출력하라.",
+    "input": "첫째 줄에 total page size가 주어진다.",
+    "output": "시작 인덱스와 끝 인덱스를 출력하거나 INVALID를 출력한다. 데이터가 없으면 EMPTY를 출력한다.",
+    "constraints": ["0 <= total <= 1000000000", "page와 size는 정수"],
+    "examples": [
+      {"input": "95 2 10", "output": "10 19"},
+      {"input": "0 1 10", "output": "EMPTY"}
+    ]
+  },
+  {
+    "title": "비동기 결과 합치기",
+    "level": "medium",
+    "tags": ["async_handling", "concurrency", "io_network"],
+    "statement": "여러 작업의 결과 상태가 주어진다. OK 결과의 개수와 FAIL 결과의 개수를 출력하라.",
+    "input": "첫째 줄에 N이 주어진다. 다음 N개 줄에 OK 또는 FAIL이 주어진다.",
+    "output": "OK 개수와 FAIL 개수를 공백으로 구분해 출력한다.",
+    "constraints": ["1 <= N <= 100000"],
+    "examples": [
+      {"input": "5\nOK\nFAIL\nOK\nOK\nFAIL", "output": "3 2"}
+    ]
+  },
+  {
+    "title": "행렬 곱 가능 여부",
+    "level": "medium",
+    "tags": ["tensor_matrix_shape", "data_validation"],
+    "statement": "두 행렬의 크기 A(r1 x c1), B(r2 x c2)가 주어진다. 곱셈이 가능하면 결과 행렬의 크기를 출력하고, 불가능하면 INVALID를 출력하라.",
+    "input": "첫째 줄에 r1 c1 r2 c2가 주어진다.",
+    "output": "가능하면 r1 c2를 출력하고, 불가능하면 INVALID를 출력한다.",
+    "constraints": ["1 <= r1, c1, r2, c2 <= 10000"],
+    "examples": [
+      {"input": "2 3 3 4", "output": "2 4"},
+      {"input": "2 3 2 4", "output": "INVALID"}
+    ]
+  },
+  {
+    "title": "파일 줄 수 세기",
+    "level": "easy",
+    "tags": ["resource_management", "io_network", "exception_handling"],
+    "statement": "여러 줄의 문자열이 주어진다. END가 나오기 전까지의 줄 수를 출력하라.",
+    "input": "여러 줄이 주어지며, 마지막 줄은 END이다.",
+    "output": "END 이전에 입력된 줄 수를 출력한다.",
+    "constraints": ["전체 입력은 100000줄 이하"],
+    "examples": [
+      {"input": "hello\nworld\nEND", "output": "2"}
+    ]
+  },
+  {
+    "title": "송금 가능 여부",
+    "level": "hard",
+    "tags": ["transaction_atomicity", "database_query", "error_propagation"],
+    "statement": "잔액 A, 송금액 X, 입금 계좌 상태 S가 주어진다. 잔액이 부족하거나 계좌 상태가 CLOSED이면 ROLLBACK을 출력하고, 아니면 COMMIT과 송금 후 잔액을 출력하라.",
+    "input": "첫째 줄에 A X S가 주어진다.",
+    "output": "COMMIT 잔액 또는 ROLLBACK을 출력한다.",
+    "constraints": ["0 <= A, X <= 1000000000", "S는 OPEN 또는 CLOSED"],
+    "examples": [
+      {"input": "1000 300 OPEN", "output": "COMMIT 700"},
+      {"input": "1000 300 CLOSED", "output": "ROLLBACK"}
+    ]
+  },
+  {
+    "title": "스트리밍 최대값",
+    "level": "medium",
+    "tags": ["space_complexity", "memory_management", "performance_runtime"],
+    "statement": "N개의 정수가 한 줄씩 주어진다. 모든 값을 리스트에 저장하지 말고 읽으면서 최대값을 구해 출력하라.",
+    "input": "첫째 줄에 N이 주어진다. 다음 N개 줄에 정수가 하나씩 주어진다.",
+    "output": "최대값을 출력한다.",
+    "constraints": ["1 <= N <= 1000000", "-1000000000 <= 값 <= 1000000000"],
+    "examples": [
+      {"input": "5\n3\n10\n-1\n7\n2", "output": "10"}
+    ]
+  }
+]
