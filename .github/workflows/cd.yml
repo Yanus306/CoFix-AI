@@ -13,12 +13,13 @@ jobs:
     runs-on: self-hosted
 
     steps:
+      - name: Setup Git Safe Directory
+        run: git config --global --add safe.directory /home/2Team/cofix-ai
+    
       - name: Checkout code
-        uses: actions/checkout@v7
-        with:
-          submodules: true
-          set-safe-directory: false
-          path: /home/2Team/cofix-ai
+        run: |
+          git fetch origin main
+          git reset --hard origin/main
 
       - name: Install Python dependencies
         run: /home/2Team/cofix-ai/.venv/bin/pip install -r /home/2Team/cofix-ai/requirements.txt
