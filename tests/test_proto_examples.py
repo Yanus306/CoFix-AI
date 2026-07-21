@@ -17,7 +17,8 @@ EXAMPLES = {
     "issue_quiz_request.textproto": quiz_in.GenerateIssueQuizRequest,
     "issue_quiz_response.textproto": quiz_out.GenerateIssueQuizResponse,
     "learning_chat_request.textproto": chat_in.ChatRequest,
-    "learning_chat_response.textproto": chat_out.ChatResponse,
+    "learning_chat_markdown_response.textproto": chat_out.ChatStreamResponse,
+    "learning_chat_summary_response.textproto": chat_out.ChatStreamResponse,
 }
 
 
@@ -30,7 +31,7 @@ class TextProtoExampleTests(unittest.TestCase):
         self.assertEqual(restored, message)
         return message
 
-    def test_all_six_examples_parse_and_round_trip(self):
+    def test_all_examples_parse_and_round_trip(self):
         parsed = {
             filename: self.parse_example(filename, message_type)
             for filename, message_type in EXAMPLES.items()
@@ -41,7 +42,8 @@ class TextProtoExampleTests(unittest.TestCase):
         quiz_request = parsed["issue_quiz_request.textproto"]
         quiz_response = parsed["issue_quiz_response.textproto"]
         chat_request = parsed["learning_chat_request.textproto"]
-        chat_response = parsed["learning_chat_response.textproto"]
+        chat_markdown = parsed["learning_chat_markdown_response.textproto"]
+        chat_summary = parsed["learning_chat_summary_response.textproto"]
 
         self.assertTrue(analysis_request.code)
         self.assertGreaterEqual(len(analysis_request.learning_context.recent_issues), 1)
@@ -54,8 +56,10 @@ class TextProtoExampleTests(unittest.TestCase):
         self.assertEqual(len(chat_request.category_counts), 46)
         self.assertLessEqual(len(chat_request.recent_issues), 5)
         self.assertLessEqual(len(chat_request.recent_conversation_summaries), 5)
-        self.assertTrue(chat_response.answer_markdown)
-        self.assertTrue(chat_response.HasField("conversation_summary"))
+        self.assertEqual(chat_markdown.WhichOneof("payload"), "markdown_answer")
+        self.assertTrue(chat_markdown.markdown_answer.markdown)
+        self.assertEqual(chat_summary.WhichOneof("payload"), "summary")
+        self.assertTrue(chat_summary.summary.HasField("conversation_summary"))
 
 
 if __name__ == "__main__":

@@ -144,10 +144,19 @@ def _quiz_response_from_mapping(result):
     return response
 
 
-def _chat_response_from_mapping(result):
-    response = chat_out.ChatResponse(answer_markdown=result["answer_markdown"])
-    if result["conversation_summary"] is not None:
-        response.conversation_summary = result["conversation_summary"]
+def _chat_markdown_response(markdown):
+    if not isinstance(markdown, str) or not markdown.strip():
+        raise RuntimeError("Markdown answer must be non-empty text.")
+    response = chat_out.ChatStreamResponse()
+    response.markdown_answer.markdown = markdown
+    return response
+
+
+def _chat_summary_response(conversation_summary):
+    response = chat_out.ChatStreamResponse()
+    response.summary.SetInParent()
+    if conversation_summary is not None:
+        response.summary.conversation_summary = conversation_summary
     return response
 
 
@@ -240,24 +249,49 @@ class IssueQuizServicer(quiz_grpc.IssueQuizServiceServicer):
 
 
 class LearningChatbotServicer(chat_grpc.LearningChatbotServiceServicer):
-    def __init__(self, *, categories=None, reply_generator=None):
+    def __init__(
+        self,
+        *,
+        categories=None,
+        answer_generator=None,
+        summary_generator=None,
+    ):
         self._categories = categories if categories is not None else chatbot.load_categories()
-        self._reply_generator = reply_generator or self._build_default_generator()
+        if answer_generator is None or summary_generator is None:
+            default_answer, default_summary = self._build_default_generators()
+            answer_generator = answer_generator or default_answer
+            summary_generator = summary_generator or default_summary
+        self._answer_generator = answer_generator
+        self._summary_generator = summary_generator
 
     @staticmethod
-    def _build_default_generator():
+    def _build_default_generators():
         client = chatbot.create_gemini_client()
-        template = Path(chatbot.DEFAULT_PROMPT_FILE).read_text(encoding="utf-8")
+        answer_template = Path(chatbot.DEFAULT_ANSWER_PROMPT_FILE).read_text(
+            encoding="utf-8"
+        )
+        summary_template = Path(chatbot.DEFAULT_SUMMARY_PROMPT_FILE).read_text(
+            encoding="utf-8"
+        )
 
-        def generate(request):
-            return chatbot.generate_chat_reply(
+        def generate_answer(request):
+            return chatbot.generate_markdown_answer(
                 request,
                 client,
                 model=chatbot.DEFAULT_MODEL,
-                template=template,
+                template=answer_template,
             )
 
-        return generate
+        def generate_summary(request, markdown_answer):
+            return chatbot.generate_conversation_summary(
+                request,
+                markdown_answer,
+                client,
+                model=chatbot.DEFAULT_MODEL,
+                template=summary_template,
+            )
+
+        return generate_answer, generate_summary
 
     def Chat(self, request, context):
         try:
@@ -267,10 +301,19 @@ class LearningChatbotServicer(chat_grpc.LearningChatbotServiceServicer):
         except chatbot.RequestValidationError as exc:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(exc))
         try:
-            result = chatbot.normalize_model_response(self._reply_generator(normalized))
-            return _chat_response_from_mapping(result)
+            markdown_answer = self._answer_generator(normalized)
         except Exception as exc:
             _abort_dependency_error(context, exc)
+
+        try:
+            conversation_summary = self._summary_generator(
+                normalized,
+                markdown_answer,
+            )
+        except Exception as exc:
+            _abort_dependency_error(context, exc)
+        yield _chat_markdown_response(markdown_answer)
+        yield _chat_summary_response(conversation_summary)
 
 
 def create_server(

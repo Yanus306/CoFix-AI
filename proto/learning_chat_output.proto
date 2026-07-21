@@ -2,7 +2,17 @@ syntax = "proto3";
 
 package cofix.chatbot.v1;
 
-message ChatResponse {
-  string answer_markdown = 1;
-  optional string conversation_summary = 2;
+message MarkdownAnswer {
+  string markdown = 1;
+}
+
+message ConversationSummaryResult {
+  optional string conversation_summary = 1;
+}
+
+message ChatStreamResponse {
+  oneof payload {
+    MarkdownAnswer markdown_answer = 1;
+    ConversationSummaryResult summary = 2;
+  }
 }

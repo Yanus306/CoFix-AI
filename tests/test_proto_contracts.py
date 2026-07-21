@@ -18,7 +18,7 @@ class SplitProtoContractTests(unittest.TestCase):
         actual = {path.name for path in Path("proto").glob("*.proto")}
         self.assertEqual(actual, EXPECTED_PROTO_FILES)
 
-    def test_each_input_imports_its_output_and_declares_unary_service(self):
+    def test_each_input_imports_its_output_and_declares_expected_service_shape(self):
         expected = {
             "code_analysis_input.proto": (
                 'import "proto/code_analysis_output.proto";',
@@ -33,7 +33,7 @@ class SplitProtoContractTests(unittest.TestCase):
             "learning_chat_input.proto": (
                 'import "proto/learning_chat_output.proto";',
                 "service LearningChatbotService",
-                "rpc Chat(ChatRequest) returns (ChatResponse);",
+                "rpc Chat(ChatRequest) returns (stream ChatStreamResponse);",
             ),
         }
         for filename, fragments in expected.items():
@@ -87,9 +87,22 @@ class SplitProtoContractTests(unittest.TestCase):
                 "recent_conversation_summaries",
             ],
         )
+        self.assertFalse(hasattr(chat_out, "ChatResponse"))
         self.assertEqual(
-            list(chat_out.ChatResponse.DESCRIPTOR.fields_by_name),
-            ["answer_markdown", "conversation_summary"],
+            list(chat_out.MarkdownAnswer.DESCRIPTOR.fields_by_name),
+            ["markdown"],
+        )
+        self.assertEqual(
+            list(chat_out.ConversationSummaryResult.DESCRIPTOR.fields_by_name),
+            ["conversation_summary"],
+        )
+        self.assertEqual(
+            list(chat_out.ChatStreamResponse.DESCRIPTOR.fields_by_name),
+            ["markdown_answer", "summary"],
+        )
+        self.assertIn(
+            "payload",
+            chat_out.ChatStreamResponse.DESCRIPTOR.oneofs_by_name,
         )
 
     def test_removed_identity_field_numbers_are_reserved(self):

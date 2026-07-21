@@ -1,11 +1,13 @@
 import json
 import os
+import re
 from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 DEFAULT_CATEGORIES_FILE = PROJECT_ROOT / "data" / "categories.json"
-DEFAULT_PROMPT_FILE = PROJECT_ROOT / "prompts" / "coding_learning_chatbot_prompt.md"
+DEFAULT_ANSWER_PROMPT_FILE = PROJECT_ROOT / "prompts" / "coding_learning_chatbot_prompt.md"
+DEFAULT_SUMMARY_PROMPT_FILE = PROJECT_ROOT / "prompts" / "coding_learning_chat_summary_prompt.md"
 DEFAULT_MODEL = "gemini-2.5-flash"
 DEFAULT_ENV_FILE = PROJECT_ROOT / ".env"
 GEMINI_API_KEY_ENV = "GEMINI_API_KEY"
@@ -248,12 +250,48 @@ def validate_and_compact_request(request, categories):
     }
 
 
-def build_prompt(template, compact_request):
-    placeholder = "{{chat_request_json}}"
-    if placeholder not in template:
-        raise RuntimeError(f"Prompt template must contain {placeholder}.")
-    request_json = json.dumps(compact_request, ensure_ascii=False, indent=2)
-    return template.replace(placeholder, request_json)
+def _replace_placeholders_once(template, replacements):
+    missing = [placeholder for placeholder in replacements if placeholder not in template]
+    if missing:
+        raise RuntimeError(
+            f"Prompt template must contain: {', '.join(missing)}."
+        )
+    pattern = re.compile(
+        "|".join(
+            re.escape(key)
+            for key in sorted(replacements, key=len, reverse=True)
+        )
+    )
+    return pattern.sub(lambda match: replacements[match.group(0)], template)
+
+
+def build_answer_prompt(template, compact_request):
+    return _replace_placeholders_once(
+        template,
+        {
+            "{{chat_request_json}}": json.dumps(
+                compact_request,
+                ensure_ascii=False,
+                indent=2,
+            )
+        },
+    )
+
+
+def build_summary_prompt(template, compact_request, markdown_answer):
+    if not isinstance(markdown_answer, str) or not markdown_answer.strip():
+        raise ModelResponseError("Markdown answer must be non-empty text.")
+    return _replace_placeholders_once(
+        template,
+        {
+            "{{chat_request_json}}": json.dumps(
+                compact_request,
+                ensure_ascii=False,
+                indent=2,
+            ),
+            "{{markdown_answer}}": markdown_answer,
+        },
+    )
 
 
 def parse_model_json(raw_text):
@@ -273,46 +311,28 @@ def parse_model_json(raw_text):
     return data
 
 
-def normalize_model_response(data):
-    expected_fields = {
-        "is_coding_related",
-        "answer_markdown",
-        "conversation_summary",
-    }
-    if not isinstance(data, dict) or set(data) != expected_fields:
+def normalize_summary_response(data):
+    if not isinstance(data, dict) or set(data) != {"conversation_summary"}:
         raise ModelResponseError(
-            "Gemini response fields must be exactly: "
-            "is_coding_related, answer_markdown, conversation_summary."
+            "Gemini summary fields must be exactly: conversation_summary."
         )
-    related = data["is_coding_related"]
-    if type(related) is not bool:
-        raise ModelResponseError("is_coding_related must be a boolean.")
-    answer = data["answer_markdown"]
-    if not isinstance(answer, str) or not answer.strip():
-        raise ModelResponseError("answer_markdown must be a non-empty string.")
-    answer = answer.strip()
-
     summary = data["conversation_summary"]
-    if related:
-        if not isinstance(summary, str) or not summary.strip():
-            raise ModelResponseError(
-                "conversation_summary is required for coding-related answers."
-            )
-        summary = summary.strip()
-        if len(summary) > MAX_SUMMARY_LENGTH:
-            raise ModelResponseError(
-                f"conversation_summary must be at most {MAX_SUMMARY_LENGTH} characters."
-            )
-    elif summary is not None:
+    if summary is None:
+        return None
+    if not isinstance(summary, str) or not summary.strip():
         raise ModelResponseError(
-            "conversation_summary must be null for out-of-scope answers."
+            "conversation_summary must be a non-empty string or null."
         )
-
-    return {
-        "is_coding_related": related,
-        "answer_markdown": answer,
-        "conversation_summary": summary,
-    }
+    summary = summary.strip()
+    if summary.lower() == "null":
+        raise ModelResponseError(
+            "conversation_summary must use JSON null, not the string 'null'."
+        )
+    if len(summary) > MAX_SUMMARY_LENGTH:
+        raise ModelResponseError(
+            f"conversation_summary must be at most {MAX_SUMMARY_LENGTH} characters."
+        )
+    return summary
 
 
 def _extract_response_text(response):
@@ -322,7 +342,25 @@ def _extract_response_text(response):
     return text
 
 
-def _request_model(client, model, prompt):
+def _request_markdown(client, model, prompt):
+    response = client.models.generate_content(
+        model=model,
+        contents=prompt,
+        config={
+            "response_mime_type": "text/plain",
+            "max_output_tokens": MAX_OUTPUT_TOKENS,
+        },
+    )
+    markdown = _extract_response_text(response)
+    stripped = markdown.strip()
+    if stripped.startswith("{") and stripped.endswith("}"):
+        raise ModelResponseError(
+            "Gemini answer must be direct Markdown, not a JSON object."
+        )
+    return markdown
+
+
+def _request_summary(client, model, prompt):
     response = client.models.generate_content(
         model=model,
         contents=prompt,
@@ -331,30 +369,42 @@ def _request_model(client, model, prompt):
             "max_output_tokens": MAX_OUTPUT_TOKENS,
         },
     )
-    return normalize_model_response(parse_model_json(_extract_response_text(response)))
+    return normalize_summary_response(
+        parse_model_json(_extract_response_text(response))
+    )
 
 
-def generate_chat_reply(compact_request, client, *, model=DEFAULT_MODEL, template=None):
+def generate_markdown_answer(
+    compact_request,
+    client,
+    *,
+    model=DEFAULT_MODEL,
+    template=None,
+):
     if template is None:
-        template = Path(DEFAULT_PROMPT_FILE).read_text(encoding="utf-8")
-    prompt = build_prompt(template, compact_request)
-    try:
-        return _request_model(client, model, prompt)
-    except ModelResponseError as first_error:
-        correction_prompt = "\n\n".join(
-            [
-                prompt,
-                "이전 응답에 형식 오류가 있었습니다.",
-                f"오류: {first_error}",
-                "내용을 다시 판단하되 지정된 JSON 객체 하나만 출력하세요.",
-            ]
-        )
-        try:
-            return _request_model(client, model, correction_prompt)
-        except ModelResponseError as second_error:
-            raise ModelResponseError(
-                f"Gemini response contract failed after one retry: {second_error}"
-            ) from second_error
+        template = Path(DEFAULT_ANSWER_PROMPT_FILE).read_text(encoding="utf-8")
+    return _request_markdown(
+        client,
+        model,
+        build_answer_prompt(template, compact_request),
+    )
+
+
+def generate_conversation_summary(
+    compact_request,
+    markdown_answer,
+    client,
+    *,
+    model=DEFAULT_MODEL,
+    template=None,
+):
+    if template is None:
+        template = Path(DEFAULT_SUMMARY_PROMPT_FILE).read_text(encoding="utf-8")
+    return _request_summary(
+        client,
+        model,
+        build_summary_prompt(template, compact_request, markdown_answer),
+    )
 
 
 def load_env_file(path=DEFAULT_ENV_FILE):

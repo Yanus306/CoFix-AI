@@ -5,7 +5,7 @@ package cofix.chatbot.v1;
 import "proto/learning_chat_output.proto";
 
 service LearningChatbotService {
-  rpc Chat(ChatRequest) returns (ChatResponse);
+  rpc Chat(ChatRequest) returns (stream ChatStreamResponse);
 }
 
 message CategoryCount {

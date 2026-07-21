@@ -51,14 +51,8 @@ def valid_request(**overrides):
     return value
 
 
-def model_payload(*, related=True, answer="## 반복문 오류\n\n반복 범위를 수정하세요.", summary=None):
-    if summary is None and related:
-        summary = "사용자는 loop_control 오류 수정법을 질문했고 반복 범위 수정 방법을 안내했다."
-    return {
-        "is_coding_related": related,
-        "answer_markdown": answer,
-        "conversation_summary": summary,
-    }
+def summary_payload(summary="사용자는 반복 범위 오류의 수정 방향을 질문했다."):
+    return {"conversation_summary": summary}
 
 
 class FakeModels:
@@ -85,7 +79,7 @@ class RequestValidationTests(unittest.TestCase):
 
         forbidden = "user" + "_id"
         self.assertNotIn(forbidden, result)
-        prompt = chatbot.build_prompt("{{chat_request_json}}", result)
+        prompt = chatbot.build_answer_prompt("{{chat_request_json}}", result)
         self.assertNotIn(forbidden, prompt)
 
     def test_compacts_all_categories_to_positive_counts_sorted_descending(self):
@@ -218,105 +212,136 @@ class PromptAndModelTests(unittest.TestCase):
     def setUp(self):
         self.compact_request = chatbot.validate_and_compact_request(valid_request(), CATEGORIES)
 
-    def test_prompt_contains_scope_personalization_hint_and_fix_rules(self):
-        template = Path(chatbot.DEFAULT_PROMPT_FILE).read_text(encoding="utf-8")
-        prompt = chatbot.build_prompt(template, self.compact_request)
+    def test_answer_prompt_requires_direct_markdown_and_forbids_complete_solution(self):
+        template = Path(chatbot.DEFAULT_ANSWER_PROMPT_FILE).read_text(encoding="utf-8")
+        prompt = chatbot.build_answer_prompt(template, self.compact_request)
 
-        self.assertIn("소프트웨어 개발", prompt)
-        self.assertIn("관련 없는", prompt)
-        self.assertIn("힌트", prompt)
-        self.assertIn("수정 코드", prompt)
-        self.assertIn("이전 대화 요약", prompt)
-        self.assertIn("현재 질문 해석에 필요한 경우", prompt)
+        self.assertIn("Markdown", prompt)
+        self.assertIn("JSON", prompt)
+        self.assertIn("완전히 수정된 전체 코드", prompt)
+        self.assertIn("제공하지 않는다", prompt)
+        self.assertIn("수정 방향", prompt)
+        self.assertIn("짧은 부분 코드", prompt)
         self.assertIn("loop_control", prompt)
         self.assertIn('"count": 7', prompt)
         self.assertNotIn("{{chat_request_json}}", prompt)
+        self.assertNotIn("answer_markdown", prompt)
+        self.assertNotIn("is_coding_related", prompt)
 
-    def test_prompt_replacement_is_single_pass(self):
+    def test_answer_prompt_replacement_is_single_pass(self):
         request = dict(self.compact_request)
         request["message"] = "{{chat_request_json}}"
-        prompt = chatbot.build_prompt("request={{chat_request_json}}", request)
+        prompt = chatbot.build_answer_prompt("request={{chat_request_json}}", request)
         self.assertIn('"message": "{{chat_request_json}}"', prompt)
 
-    def test_normalizes_coding_and_out_of_scope_responses(self):
-        coding = chatbot.normalize_model_response(model_payload())
-        outside = chatbot.normalize_model_response(
-            model_payload(
-                related=False,
-                answer="코딩과 소프트웨어 개발 질문을 도와드릴 수 있습니다.",
-                summary=None,
-            )
+    def test_summary_prompt_contains_request_and_direct_markdown_answer(self):
+        template = "request={{chat_request_json}}\n\nanswer={{markdown_answer}}"
+        markdown = "## 수정 방향\n\n반복 범위를 확인하세요."
+        prompt = chatbot.build_summary_prompt(
+            template,
+            self.compact_request,
+            markdown,
         )
 
-        self.assertTrue(coding["is_coding_related"])
-        self.assertTrue(coding["conversation_summary"])
-        self.assertFalse(outside["is_coding_related"])
-        self.assertIsNone(outside["conversation_summary"])
+        self.assertIn('"message"', prompt)
+        self.assertIn(markdown, prompt)
+        self.assertNotIn("{{chat_request_json}}", prompt)
+        self.assertNotIn("{{markdown_answer}}", prompt)
 
-    def test_rejects_wrong_summary_branch_length_and_extra_fields(self):
-        missing = model_payload()
-        missing["conversation_summary"] = None
-        outside_with_summary = model_payload(related=False, summary="저장하면 안 됨")
-        long_summary = model_payload(summary="가" * 301)
-        extra = model_payload()
-        extra["referenced_datasets"] = ["loop_control"]
+    def test_normalizes_summary_string_and_null(self):
+        self.assertEqual(
+            chatbot.normalize_summary_response(summary_payload()),
+            summary_payload()["conversation_summary"],
+        )
+        self.assertIsNone(
+            chatbot.normalize_summary_response(summary_payload(None))
+        )
 
-        for payload in (missing, outside_with_summary, long_summary, extra):
+    def test_rejects_wrong_summary_shape_type_length_and_extra_fields(self):
+        invalid = [
+            {},
+            {"conversation_summary": 1},
+            {"conversation_summary": "null"},
+            {"conversation_summary": "가" * 301},
+            {"conversation_summary": "요약", "extra": True},
+        ]
+        for payload in invalid:
             with self.subTest(payload=payload):
                 with self.assertRaises(chatbot.ModelResponseError):
-                    chatbot.normalize_model_response(payload)
+                    chatbot.normalize_summary_response(payload)
 
     def test_parser_rejects_prose_fences_and_non_object_json(self):
-        bare = json.dumps(model_payload(), ensure_ascii=False)
-        self.assertEqual(chatbot.parse_model_json(bare), model_payload())
+        bare = json.dumps(summary_payload(), ensure_ascii=False)
+        self.assertEqual(chatbot.parse_model_json(bare), summary_payload())
 
         for raw in (f"결과: {bare}", f"```json\n{bare}\n```", "[]"):
             with self.subTest(raw=raw):
                 with self.assertRaises(chatbot.ModelResponseError):
                     chatbot.parse_model_json(raw)
 
-    def test_successful_generation_calls_gemini_once_in_json_mode(self):
-        client = FakeClient([json.dumps(model_payload(), ensure_ascii=False)])
-        result = chatbot.generate_chat_reply(
+    def test_markdown_generation_returns_model_text_without_json_parsing(self):
+        markdown = "## 수정 방향\n\n직접 범위를 수정해보세요."
+        client = FakeClient([markdown])
+        result = chatbot.generate_markdown_answer(
             self.compact_request,
             client,
             model="gemini-test",
             template="{{chat_request_json}}",
         )
 
-        self.assertEqual(result["answer_markdown"], model_payload()["answer_markdown"])
+        self.assertEqual(result, markdown)
         self.assertEqual(len(client.models.calls), 1)
         self.assertEqual(
-            client.models.calls[0]["config"]["response_mime_type"], "application/json"
+            client.models.calls[0]["config"]["response_mime_type"], "text/plain"
         )
         self.assertEqual(client.models.calls[0]["config"]["max_output_tokens"], 4096)
 
-    def test_invalid_format_retries_once_then_returns_valid_response(self):
-        valid = json.dumps(model_payload(), ensure_ascii=False)
-        client = FakeClient(["```json\n{}\n```", valid])
-        result = chatbot.generate_chat_reply(
-            self.compact_request, client, model="gemini-test", template="{{chat_request_json}}"
+    def test_markdown_generation_rejects_old_json_answer_shape(self):
+        client = FakeClient(
+            [json.dumps({"answer_markdown": "## 잘못된 이전 형식"}, ensure_ascii=False)]
         )
-
-        self.assertEqual(result["conversation_summary"], model_payload()["conversation_summary"])
-        self.assertEqual(len(client.models.calls), 2)
-        self.assertIn("형식 오류", client.models.calls[1]["contents"])
-
-    def test_two_invalid_responses_fail_after_exactly_two_calls(self):
-        client = FakeClient(["not json", "still not json"])
         with self.assertRaises(chatbot.ModelResponseError):
-            chatbot.generate_chat_reply(
+            chatbot.generate_markdown_answer(
                 self.compact_request,
                 client,
                 model="gemini-test",
                 template="{{chat_request_json}}",
             )
-        self.assertEqual(len(client.models.calls), 2)
 
-    def test_transport_error_is_not_retried_as_format_error(self):
+    def test_summary_generation_calls_gemini_separately_in_json_mode(self):
+        payload = summary_payload()
+        client = FakeClient([json.dumps(payload, ensure_ascii=False)])
+        result = chatbot.generate_conversation_summary(
+            self.compact_request,
+            "## 수정 방향\n\n반복 범위를 확인하세요.",
+            client,
+            model="gemini-test",
+            template="{{chat_request_json}}\n{{markdown_answer}}",
+        )
+
+        self.assertEqual(result, payload["conversation_summary"])
+        self.assertEqual(len(client.models.calls), 1)
+        self.assertEqual(
+            client.models.calls[0]["config"]["response_mime_type"],
+            "application/json",
+        )
+
+    def test_invalid_summary_json_fails_without_changing_markdown(self):
+        client = FakeClient(["not json"])
+        with self.assertRaises(chatbot.ModelResponseError):
+            chatbot.generate_conversation_summary(
+                self.compact_request,
+                "## 이미 생성된 Markdown",
+                client,
+                model="gemini-test",
+                template="{{chat_request_json}}\n{{markdown_answer}}",
+            )
+        self.assertEqual(len(client.models.calls), 1)
+
+    def test_markdown_transport_error_is_not_retried(self):
         client = FakeClient([ConnectionError("offline")])
         with self.assertRaises(ConnectionError):
-            chatbot.generate_chat_reply(
+            chatbot.generate_markdown_answer(
                 self.compact_request,
                 client,
                 model="gemini-test",
@@ -332,12 +357,15 @@ class ReplacementCleanupTests(unittest.TestCase):
             try:
                 os.chdir(other_directory)
                 categories = chatbot.load_categories()
-                prompt = Path(chatbot.DEFAULT_PROMPT_FILE).read_text(encoding="utf-8")
+                answer_prompt = Path(chatbot.DEFAULT_ANSWER_PROMPT_FILE).read_text(encoding="utf-8")
+                summary_prompt = Path(chatbot.DEFAULT_SUMMARY_PROMPT_FILE).read_text(encoding="utf-8")
             finally:
                 os.chdir(original_cwd)
 
         self.assertEqual(len(categories), 46)
-        self.assertIn("{{chat_request_json}}", prompt)
+        self.assertIn("{{chat_request_json}}", answer_prompt)
+        self.assertIn("{{chat_request_json}}", summary_prompt)
+        self.assertIn("{{markdown_answer}}", summary_prompt)
 
     def test_old_chatbot_contract_and_cross_feature_imports_are_absent(self):
         source = Path("learning_chatbot.py").read_text(encoding="utf-8")
