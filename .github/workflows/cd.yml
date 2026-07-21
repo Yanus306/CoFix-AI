@@ -16,6 +16,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
         with:
+          submodules: true
+          set-safe-directory: false
           path: /home/2Team/cofix-ai
 
       - name: Install Python dependencies
