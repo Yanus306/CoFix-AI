@@ -1,0 +1,28 @@
+name: CD
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          path: /home/2Team/cofix-ai
+
+      - name: Install Python dependencies
+        run: /home/2Team/cofix-ai/.venv/bin/pip install -r /home/2Team/cofix-ai/requirements.txt
+
+      - name: Restart Cofix AI Service
+        run: sudo systemctl restart cofix-ai
+
+      - name: Check Cofix AI Service Status
+        run: sudo systemctl status cofix-ai
