@@ -1,0 +1,31 @@
+problems {
+  question: "다음 반복문이 IndexError를 발생시키지 않도록 빈칸에 들어갈 표현은?"
+  code_block {
+    language: "python"
+    content: "for i in range(/* 빈칸 */):\n    total += values[i]"
+  }
+  choices { id: "A" text: "len(values)" }
+  choices { id: "B" text: "len(values) + 1" }
+  choices { id: "C" text: "len(values) - 1" }
+  choices { id: "D" text: "values" }
+  answer: "A"
+  explanation: "range(len(values))는 0부터 len(values)-1까지 순회합니다."
+}
+problems {
+  question: "빈 리스트의 평균을 계산할 때 가장 먼저 확인해야 하는 조건은?"
+  choices { id: "A" text: "합계가 음수인지" }
+  choices { id: "B" text: "리스트가 비었는지" }
+  choices { id: "C" text: "값이 정렬됐는지" }
+  choices { id: "D" text: "중복 값이 있는지" }
+  answer: "B"
+  explanation: "빈 리스트는 길이가 0이므로 나눗셈 전에 빈 입력을 처리해야 합니다."
+}
+problems {
+  question: "리스트 인덱스의 올바른 유효 범위는?"
+  choices { id: "A" text: "1부터 길이까지" }
+  choices { id: "B" text: "0부터 길이까지" }
+  choices { id: "C" text: "0부터 길이-1까지" }
+  choices { id: "D" text: "1부터 길이-1까지" }
+  answer: "C"
+  explanation: "길이가 n인 리스트의 유효 인덱스는 0부터 n-1까지입니다."
+}

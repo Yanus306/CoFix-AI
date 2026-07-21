@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package cofix.analysis.v1;
+
+message CodeIssue {
+  string code = 1;
+  string label = 2;
+  string title = 3;
+  string description = 4;
+  repeated string learning_directions = 5;
+  string dataset = 6;
+  string guide = 7;
+}
+
+message AnalyzeCodeResponse {
+  repeated CodeIssue issues = 1;
+  reserved 2;
+}

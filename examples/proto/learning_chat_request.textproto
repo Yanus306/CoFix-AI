@@ -1,0 +1,71 @@
+message: "최근 반복문 실수를 참고해서 이 코드를 어떻게 고쳐야 하는지 알려줘."
+category_counts { dataset: "syntax_structure" count: 0 }
+category_counts { dataset: "variable_type" count: 2 }
+category_counts { dataset: "scope_lifetime" count: 0 }
+category_counts { dataset: "operator_logic" count: 1 }
+category_counts { dataset: "assignment_mutability" count: 0 }
+category_counts { dataset: "type_annotation" count: 0 }
+category_counts { dataset: "string_handling" count: 0 }
+category_counts { dataset: "array_collection" count: 0 }
+category_counts { dataset: "data_format_parsing" count: 0 }
+category_counts { dataset: "null_missing_value" count: 0 }
+category_counts { dataset: "data_validation" count: 1 }
+category_counts { dataset: "function_usage" count: 0 }
+category_counts { dataset: "api_misuse" count: 0 }
+category_counts { dataset: "side_effect" count: 0 }
+category_counts { dataset: "conditional" count: 0 }
+category_counts { dataset: "loop_control" count: 7 }
+category_counts { dataset: "edge_case" count: 4 }
+category_counts { dataset: "state_management" count: 0 }
+category_counts { dataset: "exception_handling" count: 0 }
+category_counts { dataset: "error_propagation" count: 0 }
+category_counts { dataset: "logging_diagnostics" count: 0 }
+category_counts { dataset: "time_complexity" count: 0 }
+category_counts { dataset: "space_complexity" count: 0 }
+category_counts { dataset: "algo_selection" count: 0 }
+category_counts { dataset: "data_structure_choice" count: 0 }
+category_counts { dataset: "recursion" count: 0 }
+category_counts { dataset: "memory_management" count: 0 }
+category_counts { dataset: "resource_management" count: 0 }
+category_counts { dataset: "buffer_boundary" count: 0 }
+category_counts { dataset: "ui_dom_rendering" count: 0 }
+category_counts { dataset: "tensor_matrix_shape" count: 0 }
+category_counts { dataset: "concurrency" count: 0 }
+category_counts { dataset: "async_handling" count: 0 }
+category_counts { dataset: "transaction_atomicity" count: 0 }
+category_counts { dataset: "security_input" count: 0 }
+category_counts { dataset: "auth_access_control" count: 0 }
+category_counts { dataset: "secret_handling" count: 0 }
+category_counts { dataset: "crypto_randomness" count: 0 }
+category_counts { dataset: "dependency_config" count: 0 }
+category_counts { dataset: "io_network" count: 0 }
+category_counts { dataset: "database_query" count: 0 }
+category_counts { dataset: "test_coverage" count: 0 }
+category_counts { dataset: "readability" count: 0 }
+category_counts { dataset: "clean_code" count: 0 }
+category_counts { dataset: "maintainability_design" count: 0 }
+category_counts { dataset: "performance_runtime" count: 0 }
+recent_issues {
+  dataset: "loop_control"
+  title: "반복 범위가 리스트 길이를 초과함"
+  learning_directions: "반복문 범위"
+  learning_directions: "오프바이원 오류"
+  code: "for i in range(len(values) + 1):\n    total += values[i]"
+  guide: "🚨 문제: 유효 인덱스를 초과함\n💡 해결: 올바른 반복 범위 사용\n✨ 핵심 원리\n유효 인덱스는 0부터 길이-1까지임"
+}
+recent_issues {
+  dataset: "edge_case"
+  title: "빈 리스트 평균 계산 오류"
+  learning_directions: "빈 입력 검사"
+  learning_directions: "경계값 처리"
+  code: "return total / len(values)"
+  guide: "🚨 문제: 빈 리스트에서 0으로 나눌 수 있음\n💡 해결: 빈 입력을 먼저 검사\n✨ 핵심 원리\n연산 전에 경계값을 확인해야 함"
+}
+recent_conversation_summaries {
+  turn_id: "turn_001"
+  summary: "사용자는 반복문 범위 오류의 원인을 질문했고 오프바이원 개념을 안내받았다."
+}
+recent_conversation_summaries {
+  turn_id: "turn_002"
+  summary: "사용자는 완성 코드보다 수정 방향을 먼저 보고 싶다고 요청했다."
+}

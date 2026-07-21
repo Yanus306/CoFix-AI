@@ -1,0 +1,18 @@
+selected_level: "medium"
+problem_count: 3
+issues {
+  dataset: "loop_control"
+  title: "반복 범위가 리스트 길이를 초과함"
+  learning_directions: "반복문 범위"
+  learning_directions: "오프바이원 오류"
+  code: "for i in range(len(values) + 1):\n    total += values[i]"
+  guide: "🚨 문제: 유효 인덱스를 초과함\n💡 해결: 올바른 반복 범위 사용\n✨ 핵심 원리\n유효 인덱스는 0부터 길이-1까지임"
+}
+issues {
+  dataset: "edge_case"
+  title: "빈 리스트 평균 계산 오류"
+  learning_directions: "빈 입력 검사"
+  learning_directions: "경계값 처리"
+  code: "return total / len(values)"
+  guide: "🚨 문제: 빈 리스트에서 0으로 나눌 수 있음\n💡 해결: 빈 입력을 먼저 검사\n✨ 핵심 원리\n연산 전에 경계값을 확인해야 함"
+}

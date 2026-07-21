@@ -1,0 +1,2 @@
+answer_markdown: "## 수정 방향\n\n최근 `loop_control` 실수가 7회로 가장 많고, 이번 코드도 반복 범위를 한 칸 크게 잡았습니다.\n\n```python\nfor i in range(len(values)):\n    total += values[i]\n```\n\n빈 리스트도 처리하려면 평균 계산 전에 `if not values:` 검사를 추가하세요."
+conversation_summary: "사용자는 최근 반복문 실수를 참고한 코드 수정법을 요청했다. loop_control 7회 기록과 최근 오프바이원 이슈를 근거로 반복 범위 수정 및 빈 입력 검사를 안내했다."

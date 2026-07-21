@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package cofix.chatbot.v1;
+
+message ChatResponse {
+  string answer_markdown = 1;
+  optional string conversation_summary = 2;
+}

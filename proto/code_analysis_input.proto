@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package cofix.analysis.v1;
+
+import "proto/code_analysis_output.proto";
+
+service CodeAnalysisService {
+  rpc AnalyzeCode(AnalyzeCodeRequest) returns (AnalyzeCodeResponse);
+}
+
+message RecentIssue {
+  string dataset = 1;
+  string title = 2;
+  repeated string learning_directions = 3;
+  string code = 4;
+  string guide = 5;
+}
+
+message LearningContext {
+  repeated RecentIssue recent_issues = 1;
+}
+
+message AnalyzeCodeRequest {
+  reserved 1;
+  string code = 2;
+  LearningContext learning_context = 3;
+}
