@@ -22,14 +22,14 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
-from proto import learning_chat_output_pb2 as proto_dot_learning__chat__output__pb2
+from generated_proto import learning_chat_output_pb2 as proto_dot_learning__chat__output__pb2
 
 
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1fproto/learning_chat_input.proto\x12\x10\x63ofix.chatbot.v1\x1a proto/learning_chat_output.proto\"/\n\rCategoryCount\x12\x0f\n\x07\x64\x61taset\x18\x01 \x01(\t\x12\r\n\x05\x63ount\x18\x02 \x01(\x05\"g\n\x0bRecentIssue\x12\x0f\n\x07\x64\x61taset\x18\x01 \x01(\t\x12\r\n\x05title\x18\x02 \x01(\t\x12\x1b\n\x13learning_directions\x18\x03 \x03(\t\x12\x0c\n\x04\x63ode\x18\x04 \x01(\t\x12\r\n\x05guide\x18\x05 \x01(\t\"7\n\x13\x43onversationSummary\x12\x0f\n\x07turn_id\x18\x01 \x01(\t\x12\x0f\n\x07summary\x18\x02 \x01(\t\"\xe2\x01\n\x0b\x43hatRequest\x12\x0f\n\x07message\x18\x02 \x01(\t\x12\x38\n\x0f\x63\x61tegory_counts\x18\x03 \x03(\x0b\x32\x1f.cofix.chatbot.v1.CategoryCount\x12\x34\n\rrecent_issues\x18\x04 \x03(\x0b\x32\x1d.cofix.chatbot.v1.RecentIssue\x12L\n\x1drecent_conversation_summaries\x18\x05 \x03(\x0b\x32%.cofix.chatbot.v1.ConversationSummaryJ\x04\x08\x01\x10\x02\x32g\n\x16LearningChatbotService\x12M\n\x04\x43hat\x12\x1d.cofix.chatbot.v1.ChatRequest\x1a$.cofix.chatbot.v1.ChatStreamResponse0\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'proto.learning_chat_input_pb2', _globals)
+_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'generated_proto.learning_chat_input_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
   _globals['_CATEGORYCOUNT']._serialized_start=87

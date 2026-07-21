@@ -3,12 +3,12 @@ from pathlib import Path
 
 from google.protobuf import text_format
 
-from proto import code_analysis_input_pb2 as analysis_in
-from proto import code_analysis_output_pb2 as analysis_out
-from proto import issue_quiz_input_pb2 as quiz_in
-from proto import issue_quiz_output_pb2 as quiz_out
-from proto import learning_chat_input_pb2 as chat_in
-from proto import learning_chat_output_pb2 as chat_out
+from generated_proto import code_analysis_input_pb2 as analysis_in
+from generated_proto import code_analysis_output_pb2 as analysis_out
+from generated_proto import issue_quiz_input_pb2 as quiz_in
+from generated_proto import issue_quiz_output_pb2 as quiz_out
+from generated_proto import learning_chat_input_pb2 as chat_in
+from generated_proto import learning_chat_output_pb2 as chat_out
 
 
 EXAMPLES = {

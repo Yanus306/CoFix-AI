@@ -18,6 +18,14 @@ class SplitProtoContractTests(unittest.TestCase):
         actual = {path.name for path in Path("proto").glob("*.proto")}
         self.assertEqual(actual, EXPECTED_PROTO_FILES)
 
+    def test_schema_submodule_contains_only_proto_files(self):
+        files = {
+            path.name
+            for path in Path("proto").iterdir()
+            if path.is_file() and path.name != ".git"
+        }
+        self.assertEqual(files, EXPECTED_PROTO_FILES)
+
     def test_each_input_imports_its_output_and_declares_expected_service_shape(self):
         expected = {
             "code_analysis_input.proto": (
@@ -43,12 +51,12 @@ class SplitProtoContractTests(unittest.TestCase):
                     self.assertIn(fragment, source)
 
     def test_generated_messages_preserve_existing_external_fields(self):
-        analysis_in = importlib.import_module("proto.code_analysis_input_pb2")
-        analysis_out = importlib.import_module("proto.code_analysis_output_pb2")
-        quiz_in = importlib.import_module("proto.issue_quiz_input_pb2")
-        quiz_out = importlib.import_module("proto.issue_quiz_output_pb2")
-        chat_in = importlib.import_module("proto.learning_chat_input_pb2")
-        chat_out = importlib.import_module("proto.learning_chat_output_pb2")
+        analysis_in = importlib.import_module("generated_proto.code_analysis_input_pb2")
+        analysis_out = importlib.import_module("generated_proto.code_analysis_output_pb2")
+        quiz_in = importlib.import_module("generated_proto.issue_quiz_input_pb2")
+        quiz_out = importlib.import_module("generated_proto.issue_quiz_output_pb2")
+        chat_in = importlib.import_module("generated_proto.learning_chat_input_pb2")
+        chat_out = importlib.import_module("generated_proto.learning_chat_output_pb2")
 
         self.assertEqual(
             list(analysis_in.AnalyzeCodeRequest.DESCRIPTOR.fields_by_name),

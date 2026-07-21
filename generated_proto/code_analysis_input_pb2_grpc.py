@@ -3,8 +3,8 @@
 import grpc
 import warnings
 
-from proto import learning_chat_input_pb2 as proto_dot_learning__chat__input__pb2
-from proto import learning_chat_output_pb2 as proto_dot_learning__chat__output__pb2
+from generated_proto import code_analysis_input_pb2 as proto_dot_code__analysis__input__pb2
+from generated_proto import code_analysis_output_pb2 as proto_dot_code__analysis__output__pb2
 
 GRPC_GENERATED_VERSION = '1.82.1'
 GRPC_VERSION = grpc.__version__
@@ -19,14 +19,14 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + ' but the generated code in proto/learning_chat_input_pb2_grpc.py depends on'
+        + ' but the generated code in proto/code_analysis_input_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
     )
 
 
-class LearningChatbotServiceStub:
+class CodeAnalysisServiceStub:
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
@@ -35,43 +35,43 @@ class LearningChatbotServiceStub:
         Args:
             channel: A grpc.Channel.
         """
-        self.Chat = channel.unary_stream(
-                '/cofix.chatbot.v1.LearningChatbotService/Chat',
-                request_serializer=proto_dot_learning__chat__input__pb2.ChatRequest.SerializeToString,
-                response_deserializer=proto_dot_learning__chat__output__pb2.ChatStreamResponse.FromString,
+        self.AnalyzeCode = channel.unary_unary(
+                '/cofix.analysis.v1.CodeAnalysisService/AnalyzeCode',
+                request_serializer=proto_dot_code__analysis__input__pb2.AnalyzeCodeRequest.SerializeToString,
+                response_deserializer=proto_dot_code__analysis__output__pb2.AnalyzeCodeResponse.FromString,
                 _registered_method=True)
 
 
-class LearningChatbotServiceServicer:
+class CodeAnalysisServiceServicer:
     """Missing associated documentation comment in .proto file."""
 
-    def Chat(self, request, context):
+    def AnalyzeCode(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
 
-def add_LearningChatbotServiceServicer_to_server(servicer, server):
+def add_CodeAnalysisServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'Chat': grpc.unary_stream_rpc_method_handler(
-                    servicer.Chat,
-                    request_deserializer=proto_dot_learning__chat__input__pb2.ChatRequest.FromString,
-                    response_serializer=proto_dot_learning__chat__output__pb2.ChatStreamResponse.SerializeToString,
+            'AnalyzeCode': grpc.unary_unary_rpc_method_handler(
+                    servicer.AnalyzeCode,
+                    request_deserializer=proto_dot_code__analysis__input__pb2.AnalyzeCodeRequest.FromString,
+                    response_serializer=proto_dot_code__analysis__output__pb2.AnalyzeCodeResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'cofix.chatbot.v1.LearningChatbotService', rpc_method_handlers)
+            'cofix.analysis.v1.CodeAnalysisService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('cofix.chatbot.v1.LearningChatbotService', rpc_method_handlers)
+    server.add_registered_method_handlers('cofix.analysis.v1.CodeAnalysisService', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
-class LearningChatbotService:
+class CodeAnalysisService:
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def Chat(request,
+    def AnalyzeCode(request,
             target,
             options=(),
             channel_credentials=None,
@@ -81,12 +81,12 @@ class LearningChatbotService:
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_stream(
+        return grpc.experimental.unary_unary(
             request,
             target,
-            '/cofix.chatbot.v1.LearningChatbotService/Chat',
-            proto_dot_learning__chat__input__pb2.ChatRequest.SerializeToString,
-            proto_dot_learning__chat__output__pb2.ChatStreamResponse.FromString,
+            '/cofix.analysis.v1.CodeAnalysisService/AnalyzeCode',
+            proto_dot_code__analysis__input__pb2.AnalyzeCodeRequest.SerializeToString,
+            proto_dot_code__analysis__output__pb2.AnalyzeCodeResponse.FromString,
             options,
             channel_credentials,
             insecure,

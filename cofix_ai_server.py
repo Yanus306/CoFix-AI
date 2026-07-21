@@ -9,12 +9,12 @@ import grpc
 import ai_feedback_pipeline as analysis
 import issue_quiz as quiz
 import learning_chatbot as chatbot
-from proto import code_analysis_input_pb2_grpc as analysis_grpc
-from proto import code_analysis_output_pb2 as analysis_out
-from proto import issue_quiz_input_pb2_grpc as quiz_grpc
-from proto import issue_quiz_output_pb2 as quiz_out
-from proto import learning_chat_input_pb2_grpc as chat_grpc
-from proto import learning_chat_output_pb2 as chat_out
+from generated_proto import code_analysis_input_pb2_grpc as analysis_grpc
+from generated_proto import code_analysis_output_pb2 as analysis_out
+from generated_proto import issue_quiz_input_pb2_grpc as quiz_grpc
+from generated_proto import issue_quiz_output_pb2 as quiz_out
+from generated_proto import learning_chat_input_pb2_grpc as chat_grpc
+from generated_proto import learning_chat_output_pb2 as chat_out
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent

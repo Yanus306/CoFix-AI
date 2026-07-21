@@ -28,7 +28,7 @@ DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n proto/code_analys
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'proto.code_analysis_output_pb2', _globals)
+_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'generated_proto.code_analysis_output_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
   _globals['_CODEISSUE']._serialized_start=56

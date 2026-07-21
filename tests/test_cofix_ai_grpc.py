@@ -6,12 +6,12 @@ import grpc
 
 import cofix_ai_server as server_module
 import learning_chatbot as chatbot
-from proto import code_analysis_input_pb2 as analysis_in
-from proto import code_analysis_input_pb2_grpc as analysis_grpc
-from proto import issue_quiz_input_pb2 as quiz_in
-from proto import issue_quiz_input_pb2_grpc as quiz_grpc
-from proto import learning_chat_input_pb2 as chat_in
-from proto import learning_chat_input_pb2_grpc as chat_grpc
+from generated_proto import code_analysis_input_pb2 as analysis_in
+from generated_proto import code_analysis_input_pb2_grpc as analysis_grpc
+from generated_proto import issue_quiz_input_pb2 as quiz_in
+from generated_proto import issue_quiz_input_pb2_grpc as quiz_grpc
+from generated_proto import learning_chat_input_pb2 as chat_in
+from generated_proto import learning_chat_input_pb2_grpc as chat_grpc
 
 
 def analysis_request():

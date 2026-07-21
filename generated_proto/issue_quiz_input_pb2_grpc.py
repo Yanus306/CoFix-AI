@@ -3,8 +3,8 @@
 import grpc
 import warnings
 
-from proto import issue_quiz_input_pb2 as proto_dot_issue__quiz__input__pb2
-from proto import issue_quiz_output_pb2 as proto_dot_issue__quiz__output__pb2
+from generated_proto import issue_quiz_input_pb2 as proto_dot_issue__quiz__input__pb2
+from generated_proto import issue_quiz_output_pb2 as proto_dot_issue__quiz__output__pb2
 
 GRPC_GENERATED_VERSION = '1.82.1'
 GRPC_VERSION = grpc.__version__

@@ -28,7 +28,7 @@ DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1dproto/issue_qu
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'proto.issue_quiz_output_pb2', _globals)
+_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'generated_proto.issue_quiz_output_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
   _globals['_QUIZCHOICE']._serialized_start=48

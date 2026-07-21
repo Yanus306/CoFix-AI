@@ -28,7 +28,7 @@ DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n proto/learning_ch
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'proto.learning_chat_output_pb2', _globals)
+_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'generated_proto.learning_chat_output_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
   _globals['_MARKDOWNANSWER']._serialized_start=54

@@ -22,14 +22,14 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
-from proto import issue_quiz_output_pb2 as proto_dot_issue__quiz__output__pb2
+from generated_proto import issue_quiz_output_pb2 as proto_dot_issue__quiz__output__pb2
 
 
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1cproto/issue_quiz_input.proto\x12\rcofix.quiz.v1\x1a\x1dproto/issue_quiz_output.proto\"g\n\x0bRecentIssue\x12\x0f\n\x07\x64\x61taset\x18\x01 \x01(\t\x12\r\n\x05title\x18\x02 \x01(\t\x12\x1b\n\x13learning_directions\x18\x03 \x03(\t\x12\x0c\n\x04\x63ode\x18\x04 \x01(\t\x12\r\n\x05guide\x18\x05 \x01(\t\"u\n\x18GenerateIssueQuizRequest\x12\x16\n\x0eselected_level\x18\x01 \x01(\t\x12\x15\n\rproblem_count\x18\x02 \x01(\x05\x12*\n\x06issues\x18\x03 \x03(\x0b\x32\x1a.cofix.quiz.v1.RecentIssue2z\n\x10IssueQuizService\x12\x66\n\x11GenerateIssueQuiz\x12\'.cofix.quiz.v1.GenerateIssueQuizRequest\x1a(.cofix.quiz.v1.GenerateIssueQuizResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'proto.issue_quiz_input_pb2', _globals)
+_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'generated_proto.issue_quiz_input_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
   _globals['_RECENTISSUE']._serialized_start=78
