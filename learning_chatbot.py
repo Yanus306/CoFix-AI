@@ -1,19 +1,20 @@
 import json
 import os
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 DEFAULT_CATEGORIES_FILE = PROJECT_ROOT / "data" / "categories.json"
 DEFAULT_ANSWER_PROMPT_FILE = PROJECT_ROOT / "prompts" / "coding_learning_chatbot_prompt.md"
-DEFAULT_SUMMARY_PROMPT_FILE = PROJECT_ROOT / "prompts" / "coding_learning_chat_summary_prompt.md"
 DEFAULT_MODEL = "gemini-2.5-flash"
 DEFAULT_ENV_FILE = PROJECT_ROOT / ".env"
 GEMINI_API_KEY_ENV = "GEMINI_API_KEY"
 MAX_OUTPUT_TOKENS = 4096
 MAX_RECENT_ISSUES = 5
 MAX_CONVERSATION_SUMMARIES = 5
+MAX_CHAT_TITLE_LENGTH = 50
 MAX_SUMMARY_LENGTH = 300
 MAX_MESSAGE_LENGTH = 4000
 MAX_ISSUE_TITLE_LENGTH = 300
@@ -24,6 +25,7 @@ MAX_ISSUE_GUIDE_LENGTH = 5000
 MAX_TURN_ID_LENGTH = 128
 
 REQUEST_FIELDS = {
+    "title",
     "message",
     "category_counts",
     "recent_issues",
@@ -46,6 +48,13 @@ class RequestValidationError(ValueError):
 
 class ModelResponseError(RuntimeError):
     """Gemini returned data that does not satisfy the internal contract."""
+
+
+@dataclass(frozen=True)
+class ChatResponseParts:
+    title: str | None
+    conversation_summary: str | None
+    markdown_answer: str
 
 
 def load_categories(path=DEFAULT_CATEGORIES_FILE):
@@ -75,6 +84,17 @@ def _require_text(value, path, *, max_length=None):
             f"{path} must be at most {max_length} characters."
         )
     return value
+
+
+def _normalize_chat_title(value):
+    if not isinstance(value, str):
+        raise RequestValidationError("title must be a string.")
+    title = value.strip()
+    if len(title) > MAX_CHAT_TITLE_LENGTH:
+        raise RequestValidationError(
+            f"title must be at most {MAX_CHAT_TITLE_LENGTH} characters."
+        )
+    return title
 
 
 def _category_map(categories):
@@ -235,6 +255,7 @@ def validate_and_compact_request(request, categories):
     _require_exact_fields(request, REQUEST_FIELDS, "request")
     categories_by_key = _category_map(categories)
     return {
+        "title": _normalize_chat_title(request["title"]),
         "message": _require_text(
             request["message"], "message", max_length=MAX_MESSAGE_LENGTH
         ),
@@ -278,20 +299,15 @@ def build_answer_prompt(template, compact_request):
     )
 
 
-def build_summary_prompt(template, compact_request, markdown_answer):
-    if not isinstance(markdown_answer, str) or not markdown_answer.strip():
-        raise ModelResponseError("Markdown answer must be non-empty text.")
-    return _replace_placeholders_once(
-        template,
-        {
-            "{{chat_request_json}}": json.dumps(
-                compact_request,
-                ensure_ascii=False,
-                indent=2,
-            ),
-            "{{markdown_answer}}": markdown_answer,
-        },
-    )
+def _reject_duplicate_json_keys(pairs):
+    data = {}
+    for key, value in pairs:
+        if key in data:
+            raise ModelResponseError(
+                f"Gemini response contains duplicate JSON field: {key}."
+            )
+        data[key] = value
+    return data
 
 
 def parse_model_json(raw_text):
@@ -303,7 +319,7 @@ def parse_model_json(raw_text):
             "Gemini response must be one bare JSON object without prose or code fences."
         )
     try:
-        data = json.loads(stripped)
+        data = json.loads(stripped, object_pairs_hook=_reject_duplicate_json_keys)
     except json.JSONDecodeError as exc:
         raise ModelResponseError("Gemini response is not valid JSON.") from exc
     if not isinstance(data, dict):
@@ -312,27 +328,66 @@ def parse_model_json(raw_text):
 
 
 def normalize_summary_response(data):
-    if not isinstance(data, dict) or set(data) != {"conversation_summary"}:
+    expected_fields = ["title", "conversation_summary"]
+    if not isinstance(data, dict) or list(data) != expected_fields:
         raise ModelResponseError(
-            "Gemini summary fields must be exactly: conversation_summary."
+            "Gemini summary fields must be exactly: title, conversation_summary."
         )
+    title = data["title"]
     summary = data["conversation_summary"]
-    if summary is None:
-        return None
+    if title is None and summary is None:
+        return {"title": None, "conversation_summary": None}
+    if title is None or summary is None:
+        raise ModelResponseError(
+            "title and conversation_summary must both be strings or both be null."
+        )
+    if not isinstance(title, str) or not title.strip():
+        raise ModelResponseError("title must be a non-empty string or null.")
     if not isinstance(summary, str) or not summary.strip():
         raise ModelResponseError(
             "conversation_summary must be a non-empty string or null."
         )
-    summary = summary.strip()
-    if summary.lower() == "null":
+    if len(title) > MAX_CHAT_TITLE_LENGTH:
         raise ModelResponseError(
-            "conversation_summary must use JSON null, not the string 'null'."
+            f"title must be at most {MAX_CHAT_TITLE_LENGTH} characters."
         )
     if len(summary) > MAX_SUMMARY_LENGTH:
         raise ModelResponseError(
             f"conversation_summary must be at most {MAX_SUMMARY_LENGTH} characters."
         )
-    return summary
+    if title != title.strip():
+        raise ModelResponseError(
+            "title must not have leading or trailing whitespace."
+        )
+    if summary != summary.strip():
+        raise ModelResponseError(
+            "conversation_summary must not have leading or trailing whitespace."
+        )
+    if title.lower() == "null":
+        raise ModelResponseError("title must use JSON null, not the string 'null'.")
+    if summary.lower() == "null":
+        raise ModelResponseError(
+            "conversation_summary must use JSON null, not the string 'null'."
+        )
+    return {"title": title, "conversation_summary": summary}
+
+
+def validate_chat_response(raw_text):
+    if not isinstance(raw_text, str):
+        raise ModelResponseError("Gemini chat response must be text.")
+    json_line, separator, markdown = raw_text.partition("\n")
+    if not separator:
+        raise ModelResponseError(
+            "Gemini chat response must contain a JSON first line and Markdown body."
+        )
+    metadata = normalize_summary_response(parse_model_json(json_line))
+    if not markdown.strip():
+        raise ModelResponseError("Markdown answer must be non-empty text.")
+    return ChatResponseParts(
+        title=metadata["title"],
+        conversation_summary=metadata["conversation_summary"],
+        markdown_answer=markdown,
+    )
 
 
 def _extract_response_text(response):
@@ -342,7 +397,7 @@ def _extract_response_text(response):
     return text
 
 
-def _request_markdown(client, model, prompt):
+def _request_chat(client, model, prompt):
     response = client.models.generate_content(
         model=model,
         contents=prompt,
@@ -351,30 +406,10 @@ def _request_markdown(client, model, prompt):
             "max_output_tokens": MAX_OUTPUT_TOKENS,
         },
     )
-    markdown = _extract_response_text(response)
-    stripped = markdown.strip()
-    if stripped.startswith("{") and stripped.endswith("}"):
-        raise ModelResponseError(
-            "Gemini answer must be direct Markdown, not a JSON object."
-        )
-    return markdown
+    return validate_chat_response(_extract_response_text(response))
 
 
-def _request_summary(client, model, prompt):
-    response = client.models.generate_content(
-        model=model,
-        contents=prompt,
-        config={
-            "response_mime_type": "application/json",
-            "max_output_tokens": MAX_OUTPUT_TOKENS,
-        },
-    )
-    return normalize_summary_response(
-        parse_model_json(_extract_response_text(response))
-    )
-
-
-def generate_markdown_answer(
+def generate_chat_response(
     compact_request,
     client,
     *,
@@ -383,27 +418,10 @@ def generate_markdown_answer(
 ):
     if template is None:
         template = Path(DEFAULT_ANSWER_PROMPT_FILE).read_text(encoding="utf-8")
-    return _request_markdown(
+    return _request_chat(
         client,
         model,
         build_answer_prompt(template, compact_request),
-    )
-
-
-def generate_conversation_summary(
-    compact_request,
-    markdown_answer,
-    client,
-    *,
-    model=DEFAULT_MODEL,
-    template=None,
-):
-    if template is None:
-        template = Path(DEFAULT_SUMMARY_PROMPT_FILE).read_text(encoding="utf-8")
-    return _request_summary(
-        client,
-        model,
-        build_summary_prompt(template, compact_request, markdown_answer),
     )
 
 

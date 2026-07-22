@@ -1,3 +1,0 @@
-markdown_answer {
-  markdown: "## 반복 범위 오류 수정 방향\n\n`range(len(values) + 1)`은 마지막 반복에서 유효 인덱스를 벗어납니다. 반복 범위의 끝값을 확인하고 직접 수정해보세요.\n\n```python\nfor i in range(...):\n    total += values[i]\n```\n\n수정한 코드를 보내주면 남은 오류를 다시 확인해드릴게요."
-}

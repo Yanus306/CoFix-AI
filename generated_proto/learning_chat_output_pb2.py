@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1alearning_chat_output.proto\x12\x10\x63ofix.chatbot.v1\"\"\n\x0eMarkdownAnswer\x12\x10\n\x08markdown\x18\x01 \x01(\t\"W\n\x19\x43onversationSummaryResult\x12!\n\x14\x63onversation_summary\x18\x01 \x01(\tH\x00\x88\x01\x01\x42\x17\n\x15_conversation_summary\"\x9c\x01\n\x12\x43hatStreamResponse\x12;\n\x0fmarkdown_answer\x18\x01 \x01(\x0b\x32 .cofix.chatbot.v1.MarkdownAnswerH\x00\x12>\n\x07summary\x18\x02 \x01(\x0b\x32+.cofix.chatbot.v1.ConversationSummaryResultH\x00\x42\t\n\x07payloadB\x1f\n\x1bkr.jongyeol.cofix.grpc.chatP\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1alearning_chat_output.proto\x12\x10\x63ofix.chatbot.v1\"\x81\x01\n\x0c\x43hatResponse\x12\x12\n\x05title\x18\x01 \x01(\tH\x00\x88\x01\x01\x12!\n\x14\x63onversation_summary\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x17\n\x0fmarkdown_answer\x18\x03 \x01(\tB\x08\n\x06_titleB\x17\n\x15_conversation_summaryB\x1f\n\x1bkr.jongyeol.cofix.grpc.chatP\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -32,10 +32,6 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'generated_proto.learning_ch
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n\033kr.jongyeol.cofix.grpc.chatP\001'
-  _globals['_MARKDOWNANSWER']._serialized_start=48
-  _globals['_MARKDOWNANSWER']._serialized_end=82
-  _globals['_CONVERSATIONSUMMARYRESULT']._serialized_start=84
-  _globals['_CONVERSATIONSUMMARYRESULT']._serialized_end=171
-  _globals['_CHATSTREAMRESPONSE']._serialized_start=174
-  _globals['_CHATSTREAMRESPONSE']._serialized_end=330
+  _globals['_CHATRESPONSE']._serialized_start=49
+  _globals['_CHATRESPONSE']._serialized_end=178
 # @@protoc_insertion_point(module_scope)

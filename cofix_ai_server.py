@@ -102,6 +102,7 @@ def _quiz_request_to_mapping(request):
 
 def _chat_request_to_mapping(request):
     return {
+        "title": request.title,
         "message": request.message,
         "category_counts": [
             {"dataset": item.dataset, "count": item.count}
@@ -146,19 +147,12 @@ def _quiz_response_from_mapping(result):
     return response
 
 
-def _chat_markdown_response(markdown):
-    if not isinstance(markdown, str) or not markdown.strip():
-        raise RuntimeError("Markdown answer must be non-empty text.")
-    response = chat_out.ChatStreamResponse()
-    response.markdown_answer.markdown = markdown
-    return response
-
-
-def _chat_summary_response(conversation_summary):
-    response = chat_out.ChatStreamResponse()
-    response.summary.SetInParent()
-    if conversation_summary is not None:
-        response.summary.conversation_summary = conversation_summary
+def _chat_response(result):
+    response = chat_out.ChatResponse(markdown_answer=result.markdown_answer)
+    if result.title is not None:
+        response.title = result.title
+    if result.conversation_summary is not None:
+        response.conversation_summary = result.conversation_summary
     return response
 
 
@@ -260,45 +254,27 @@ class LearningChatbotServicer(chat_grpc.LearningChatbotServiceServicer):
         self,
         *,
         categories=None,
-        answer_generator=None,
-        summary_generator=None,
+        response_generator=None,
     ):
         self._categories = categories if categories is not None else chatbot.load_categories()
-        if answer_generator is None or summary_generator is None:
-            default_answer, default_summary = self._build_default_generators()
-            answer_generator = answer_generator or default_answer
-            summary_generator = summary_generator or default_summary
-        self._answer_generator = answer_generator
-        self._summary_generator = summary_generator
+        self._response_generator = response_generator or self._build_default_generator()
 
     @staticmethod
-    def _build_default_generators():
+    def _build_default_generator():
         client = chatbot.create_gemini_client()
-        answer_template = Path(chatbot.DEFAULT_ANSWER_PROMPT_FILE).read_text(
-            encoding="utf-8"
-        )
-        summary_template = Path(chatbot.DEFAULT_SUMMARY_PROMPT_FILE).read_text(
+        template = Path(chatbot.DEFAULT_ANSWER_PROMPT_FILE).read_text(
             encoding="utf-8"
         )
 
-        def generate_answer(request):
-            return chatbot.generate_markdown_answer(
+        def generate_response(request):
+            return chatbot.generate_chat_response(
                 request,
                 client,
                 model=chatbot.DEFAULT_MODEL,
-                template=answer_template,
+                template=template,
             )
 
-        def generate_summary(request, markdown_answer):
-            return chatbot.generate_conversation_summary(
-                request,
-                markdown_answer,
-                client,
-                model=chatbot.DEFAULT_MODEL,
-                template=summary_template,
-            )
-
-        return generate_answer, generate_summary
+        return generate_response
 
     def Chat(self, request, context):
         try:
@@ -308,19 +284,10 @@ class LearningChatbotServicer(chat_grpc.LearningChatbotServiceServicer):
         except chatbot.RequestValidationError as exc:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(exc))
         try:
-            markdown_answer = self._answer_generator(normalized)
+            result = self._response_generator(normalized)
+            return _chat_response(result)
         except Exception as exc:
             _abort_dependency_error(context, exc)
-
-        try:
-            conversation_summary = self._summary_generator(
-                normalized,
-                markdown_answer,
-            )
-        except Exception as exc:
-            _abort_dependency_error(context, exc)
-        yield _chat_markdown_response(markdown_answer)
-        yield _chat_summary_response(conversation_summary)
 
 
 def create_server(

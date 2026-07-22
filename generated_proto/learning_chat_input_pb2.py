@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from generated_proto import learning_chat_output_pb2 as learning__chat__output__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x19learning_chat_input.proto\x12\x10\x63ofix.chatbot.v1\x1a\x1alearning_chat_output.proto\"/\n\rCategoryCount\x12\x0f\n\x07\x64\x61taset\x18\x01 \x01(\t\x12\r\n\x05\x63ount\x18\x02 \x01(\x05\"g\n\x0bRecentIssue\x12\x0f\n\x07\x64\x61taset\x18\x01 \x01(\t\x12\r\n\x05title\x18\x02 \x01(\t\x12\x1b\n\x13learning_directions\x18\x03 \x03(\t\x12\x0c\n\x04\x63ode\x18\x04 \x01(\t\x12\r\n\x05guide\x18\x05 \x01(\t\"7\n\x13\x43onversationSummary\x12\x0f\n\x07turn_id\x18\x01 \x01(\t\x12\x0f\n\x07summary\x18\x02 \x01(\t\"\xe2\x01\n\x0b\x43hatRequest\x12\x0f\n\x07message\x18\x02 \x01(\t\x12\x38\n\x0f\x63\x61tegory_counts\x18\x03 \x03(\x0b\x32\x1f.cofix.chatbot.v1.CategoryCount\x12\x34\n\rrecent_issues\x18\x04 \x03(\x0b\x32\x1d.cofix.chatbot.v1.RecentIssue\x12L\n\x1drecent_conversation_summaries\x18\x05 \x03(\x0b\x32%.cofix.chatbot.v1.ConversationSummaryJ\x04\x08\x01\x10\x02\x32g\n\x16LearningChatbotService\x12M\n\x04\x43hat\x12\x1d.cofix.chatbot.v1.ChatRequest\x1a$.cofix.chatbot.v1.ChatStreamResponse0\x01\x42<\n\x1bkr.jongyeol.cofix.grpc.chatB\x1bLearningChatbotServiceProtoP\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x19learning_chat_input.proto\x12\x10\x63ofix.chatbot.v1\x1a\x1alearning_chat_output.proto\"/\n\rCategoryCount\x12\x0f\n\x07\x64\x61taset\x18\x01 \x01(\t\x12\r\n\x05\x63ount\x18\x02 \x01(\x05\"g\n\x0bRecentIssue\x12\x0f\n\x07\x64\x61taset\x18\x01 \x01(\t\x12\r\n\x05title\x18\x02 \x01(\t\x12\x1b\n\x13learning_directions\x18\x03 \x03(\t\x12\x0c\n\x04\x63ode\x18\x04 \x01(\t\x12\r\n\x05guide\x18\x05 \x01(\t\"7\n\x13\x43onversationSummary\x12\x0f\n\x07turn_id\x18\x01 \x01(\t\x12\x0f\n\x07summary\x18\x02 \x01(\t\"\xf1\x01\n\x0b\x43hatRequest\x12\r\n\x05title\x18\x02 \x01(\t\x12\x0f\n\x07message\x18\x03 \x01(\t\x12\x38\n\x0f\x63\x61tegory_counts\x18\x04 \x03(\x0b\x32\x1f.cofix.chatbot.v1.CategoryCount\x12\x34\n\rrecent_issues\x18\x05 \x03(\x0b\x32\x1d.cofix.chatbot.v1.RecentIssue\x12L\n\x1drecent_conversation_summaries\x18\x06 \x03(\x0b\x32%.cofix.chatbot.v1.ConversationSummaryJ\x04\x08\x01\x10\x02\x32_\n\x16LearningChatbotService\x12\x45\n\x04\x43hat\x12\x1d.cofix.chatbot.v1.ChatRequest\x1a\x1e.cofix.chatbot.v1.ChatResponseB<\n\x1bkr.jongyeol.cofix.grpc.chatB\x1bLearningChatbotServiceProtoP\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -40,7 +40,7 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_CONVERSATIONSUMMARY']._serialized_start=229
   _globals['_CONVERSATIONSUMMARY']._serialized_end=284
   _globals['_CHATREQUEST']._serialized_start=287
-  _globals['_CHATREQUEST']._serialized_end=513
-  _globals['_LEARNINGCHATBOTSERVICE']._serialized_start=515
-  _globals['_LEARNINGCHATBOTSERVICE']._serialized_end=618
+  _globals['_CHATREQUEST']._serialized_end=528
+  _globals['_LEARNINGCHATBOTSERVICE']._serialized_start=530
+  _globals['_LEARNINGCHATBOTSERVICE']._serialized_end=625
 # @@protoc_insertion_point(module_scope)

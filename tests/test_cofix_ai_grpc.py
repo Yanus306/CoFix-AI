@@ -22,6 +22,12 @@ ANALYSIS_PATCH = (
     "+    for i in range(len(values)):"
 )
 
+CHAT_CONTENT = (
+    '{"title":"반복문 범위 오류","conversation_summary":"사용자는 반복 범위 수정법을 질문했고 힌트를 안내받았다."}\n'
+    "## 수정 방법\n\n반복 범위를 직접 줄여보세요."
+)
+CHAT_RESULT = chatbot.validate_chat_response(CHAT_CONTENT)
+
 
 def analysis_request():
     return analysis_in.AnalyzeCodeRequest(
@@ -91,6 +97,7 @@ def chat_request(message="반복문 오류를 고쳐줘"):
         for item in chatbot.load_categories()
     ]
     return chat_in.ChatRequest(
+        title="반복문 범위 오류",
         message=message,
         category_counts=counts,
         recent_issues=[
@@ -112,6 +119,11 @@ def chat_request(message="반복문 오류를 고쳐줘"):
 
 
 class UnifiedGrpcServerTests(unittest.TestCase):
+    def test_chat_request_mapping_preserves_room_title(self):
+        mapped = server_module._chat_request_to_mapping(chat_request())
+
+        self.assertEqual(mapped["title"], "반복문 범위 오류")
+
     def test_analysis_request_mapping_preserves_raw_patch(self):
         mapped = server_module._analysis_request_to_mapping(analysis_request())
 
@@ -129,8 +141,7 @@ class UnifiedGrpcServerTests(unittest.TestCase):
         *,
         analysis_generator=None,
         quiz_generator=None,
-        chat_answer_generator=None,
-        chat_summary_generator=None,
+        chat_response_generator=None,
     ):
         analysis_generator = analysis_generator or (
             lambda request: {
@@ -150,11 +161,8 @@ class UnifiedGrpcServerTests(unittest.TestCase):
         quiz_generator = quiz_generator or (
             lambda _request: {"problems": [quiz_problem(1), quiz_problem(2), quiz_problem(3)]}
         )
-        chat_answer_generator = chat_answer_generator or (
-            lambda _request: "## 수정 방법\n\n반복 범위를 직접 줄여보세요."
-        )
-        chat_summary_generator = chat_summary_generator or (
-            lambda _request, _markdown: "사용자는 반복 범위 수정법을 질문했고 힌트를 안내받았다."
+        chat_response_generator = chat_response_generator or (
+            lambda _request: CHAT_RESULT
         )
         grpc_server = server_module.create_server(
             analysis_servicer=server_module.CodeAnalysisServicer(
@@ -163,8 +171,7 @@ class UnifiedGrpcServerTests(unittest.TestCase):
             quiz_servicer=server_module.IssueQuizServicer(quiz_generator=quiz_generator),
             chatbot_servicer=server_module.LearningChatbotServicer(
                 categories=chatbot.load_categories(),
-                answer_generator=chat_answer_generator,
-                summary_generator=chat_summary_generator,
+                response_generator=chat_response_generator,
             ),
             max_workers=4,
         )
@@ -183,10 +190,8 @@ class UnifiedGrpcServerTests(unittest.TestCase):
             quiz_response = quiz_grpc.IssueQuizServiceStub(channel).GenerateIssueQuiz(
                 quiz_request(), timeout=3
             )
-            chat_responses = list(
-                chat_grpc.LearningChatbotServiceStub(channel).Chat(
-                    chat_request(), timeout=3
-                )
+            chat_response = chat_grpc.LearningChatbotServiceStub(channel).Chat(
+                chat_request(), timeout=3
             )
         finally:
             channel.close()
@@ -198,11 +203,12 @@ class UnifiedGrpcServerTests(unittest.TestCase):
         self.assertTrue(quiz_response.problems[0].HasField("code_block"))
         self.assertFalse(quiz_response.problems[1].HasField("code_block"))
         self.assertEqual([choice.id for choice in quiz_response.problems[0].choices], list("ABCD"))
-        self.assertEqual(len(chat_responses), 2)
-        self.assertEqual(chat_responses[0].WhichOneof("payload"), "markdown_answer")
-        self.assertTrue(chat_responses[0].markdown_answer.markdown.startswith("## 수정 방법"))
-        self.assertEqual(chat_responses[1].WhichOneof("payload"), "summary")
-        self.assertTrue(chat_responses[1].summary.HasField("conversation_summary"))
+        self.assertEqual(chat_response.title, CHAT_RESULT.title)
+        self.assertEqual(
+            chat_response.conversation_summary,
+            CHAT_RESULT.conversation_summary,
+        )
+        self.assertEqual(chat_response.markdown_answer, CHAT_RESULT.markdown_answer)
 
     def test_invalid_input_maps_to_invalid_argument_for_each_service(self):
         grpc_server, channel = self.start_server()
@@ -214,10 +220,8 @@ class UnifiedGrpcServerTests(unittest.TestCase):
                 quiz_in.GenerateIssueQuizRequest(selected_level="easy", problem_count=2),
                 timeout=3,
             ),
-            lambda: list(
-                chat_grpc.LearningChatbotServiceStub(channel).Chat(
-                    chat_in.ChatRequest(message="질문"), timeout=3
-                )
+            lambda: chat_grpc.LearningChatbotServiceStub(channel).Chat(
+                chat_in.ChatRequest(message="질문"), timeout=3
             ),
         ]
         try:
@@ -230,42 +234,58 @@ class UnifiedGrpcServerTests(unittest.TestCase):
             channel.close()
             grpc_server.stop(0).wait()
 
-    def test_out_of_scope_chat_omits_optional_summary(self):
+    def test_out_of_scope_chat_returns_null_metadata_and_markdown(self):
+        content = (
+            '{"title":null,"conversation_summary":null}\n'
+            "코딩과 소프트웨어 개발 질문을 도와드릴 수 있습니다."
+        )
         grpc_server, channel = self.start_server(
-            chat_answer_generator=lambda _request: (
-                "코딩과 소프트웨어 개발 질문을 도와드릴 수 있습니다."
+            chat_response_generator=lambda _request: chatbot.validate_chat_response(
+                content
             ),
-            chat_summary_generator=lambda _request, _markdown: None,
         )
         try:
-            responses = list(
-                chat_grpc.LearningChatbotServiceStub(channel).Chat(
-                    chat_request("오늘 날씨 어때?"), timeout=3
-                )
+            response = chat_grpc.LearningChatbotServiceStub(channel).Chat(
+                chat_request("오늘 날씨 어때?"), timeout=3
             )
         finally:
             channel.close()
             grpc_server.stop(0).wait()
-        self.assertEqual(len(responses), 2)
-        self.assertEqual(responses[0].WhichOneof("payload"), "markdown_answer")
-        self.assertEqual(responses[1].WhichOneof("payload"), "summary")
-        self.assertFalse(responses[1].summary.HasField("conversation_summary"))
+        self.assertFalse(response.HasField("title"))
+        self.assertFalse(response.HasField("conversation_summary"))
+        self.assertEqual(
+            response.markdown_answer,
+            content.split("\n", 1)[1],
+        )
 
-    def test_summary_failure_aborts_before_any_stream_message_is_sent(self):
-        def fail_summary(_request, _markdown):
-            raise RuntimeError("private summary failure")
+    def test_chat_generation_failure_maps_to_internal_error(self):
+        def fail_response(_request):
+            raise RuntimeError("private chat failure")
 
         grpc_server, channel = self.start_server(
-            chat_summary_generator=fail_summary,
+            chat_response_generator=fail_response,
         )
         try:
-            responses = chat_grpc.LearningChatbotServiceStub(channel).Chat(
-                chat_request(), timeout=3
-            )
             with self.assertRaises(grpc.RpcError) as caught:
-                next(responses)
+                chat_grpc.LearningChatbotServiceStub(channel).Chat(
+                    chat_request(), timeout=3
+                )
             self.assertEqual(caught.exception.code(), grpc.StatusCode.INTERNAL)
             self.assertNotIn("private", caught.exception.details())
+        finally:
+            channel.close()
+            grpc_server.stop(0).wait()
+
+    def test_malformed_chat_result_maps_to_internal_error(self):
+        grpc_server, channel = self.start_server(
+            chat_response_generator=lambda _request: "invalid chat result",
+        )
+        try:
+            with self.assertRaises(grpc.RpcError) as caught:
+                chat_grpc.LearningChatbotServiceStub(channel).Chat(
+                    chat_request(), timeout=3
+                )
+            self.assertEqual(caught.exception.code(), grpc.StatusCode.INTERNAL)
         finally:
             channel.close()
             grpc_server.stop(0).wait()
@@ -324,7 +344,7 @@ class UnifiedGrpcServerTests(unittest.TestCase):
                 kwargs = {
                     "analysis_generator": fail if feature == "analysis" else None,
                     "quiz_generator": fail if feature == "quiz" else None,
-                    "chat_answer_generator": fail if feature == "chat" else None,
+                    "chat_response_generator": fail if feature == "chat" else None,
                 }
                 grpc_server, channel = self.start_server(**kwargs)
                 try:
@@ -337,10 +357,8 @@ class UnifiedGrpcServerTests(unittest.TestCase):
                             quiz_request(), timeout=3
                         )
                     else:
-                        call = lambda: list(
-                            chat_grpc.LearningChatbotServiceStub(channel).Chat(
-                                chat_request(), timeout=3
-                            )
+                        call = lambda: chat_grpc.LearningChatbotServiceStub(channel).Chat(
+                            chat_request(), timeout=3
                         )
                     with self.assertRaises(grpc.RpcError) as caught:
                         call()

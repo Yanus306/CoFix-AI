@@ -41,7 +41,7 @@ class SplitProtoContractTests(unittest.TestCase):
             "learning_chat_input.proto": (
                 'import "learning_chat_output.proto";',
                 "service LearningChatbotService",
-                "rpc Chat(ChatRequest) returns (stream ChatStreamResponse);",
+                "rpc Chat(ChatRequest) returns (ChatResponse);",
             ),
         }
         for filename, fragments in expected.items():
@@ -96,29 +96,50 @@ class SplitProtoContractTests(unittest.TestCase):
         self.assertEqual(
             list(chat_in.ChatRequest.DESCRIPTOR.fields_by_name),
             [
+                "title",
                 "message",
                 "category_counts",
                 "recent_issues",
                 "recent_conversation_summaries",
             ],
         )
-        self.assertFalse(hasattr(chat_out, "ChatResponse"))
         self.assertEqual(
-            list(chat_out.MarkdownAnswer.DESCRIPTOR.fields_by_name),
-            ["markdown"],
+            {
+                field.name: field.number
+                for field in chat_in.ChatRequest.DESCRIPTOR.fields
+            },
+            {
+                "title": 2,
+                "message": 3,
+                "category_counts": 4,
+                "recent_issues": 5,
+                "recent_conversation_summaries": 6,
+            },
         )
         self.assertEqual(
-            list(chat_out.ConversationSummaryResult.DESCRIPTOR.fields_by_name),
-            ["conversation_summary"],
+            [(field.name, field.number) for field in chat_out.ChatResponse.DESCRIPTOR.fields],
+            [
+                ("title", 1),
+                ("conversation_summary", 2),
+                ("markdown_answer", 3),
+            ],
         )
-        self.assertEqual(
-            list(chat_out.ChatStreamResponse.DESCRIPTOR.fields_by_name),
-            ["markdown_answer", "summary"],
+        self.assertTrue(
+            chat_out.ChatResponse.DESCRIPTOR.fields_by_name["title"].has_presence
         )
-        self.assertIn(
-            "payload",
-            chat_out.ChatStreamResponse.DESCRIPTOR.oneofs_by_name,
+        self.assertTrue(
+            chat_out.ChatResponse.DESCRIPTOR.fields_by_name[
+                "conversation_summary"
+            ].has_presence
         )
+        self.assertFalse(
+            chat_out.ChatResponse.DESCRIPTOR.fields_by_name[
+                "markdown_answer"
+            ].has_presence
+        )
+        self.assertFalse(hasattr(chat_out, "MarkdownAnswer"))
+        self.assertFalse(hasattr(chat_out, "ConversationSummaryResult"))
+        self.assertFalse(hasattr(chat_out, "ChatStreamResponse"))
 
     def test_removed_identity_field_numbers_are_reserved(self):
         analysis_input = Path("proto/code_analysis_input.proto").read_text(encoding="utf-8")

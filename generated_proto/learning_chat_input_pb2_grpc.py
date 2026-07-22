@@ -35,10 +35,10 @@ class LearningChatbotServiceStub:
         Args:
             channel: A grpc.Channel.
         """
-        self.Chat = channel.unary_stream(
+        self.Chat = channel.unary_unary(
                 '/cofix.chatbot.v1.LearningChatbotService/Chat',
                 request_serializer=learning__chat__input__pb2.ChatRequest.SerializeToString,
-                response_deserializer=learning__chat__output__pb2.ChatStreamResponse.FromString,
+                response_deserializer=learning__chat__output__pb2.ChatResponse.FromString,
                 _registered_method=True)
 
 
@@ -54,10 +54,10 @@ class LearningChatbotServiceServicer:
 
 def add_LearningChatbotServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'Chat': grpc.unary_stream_rpc_method_handler(
+            'Chat': grpc.unary_unary_rpc_method_handler(
                     servicer.Chat,
                     request_deserializer=learning__chat__input__pb2.ChatRequest.FromString,
-                    response_serializer=learning__chat__output__pb2.ChatStreamResponse.SerializeToString,
+                    response_serializer=learning__chat__output__pb2.ChatResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -81,12 +81,12 @@ class LearningChatbotService:
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_stream(
+        return grpc.experimental.unary_unary(
             request,
             target,
             '/cofix.chatbot.v1.LearningChatbotService/Chat',
             learning__chat__input__pb2.ChatRequest.SerializeToString,
-            learning__chat__output__pb2.ChatStreamResponse.FromString,
+            learning__chat__output__pb2.ChatResponse.FromString,
             options,
             channel_credentials,
             insecure,

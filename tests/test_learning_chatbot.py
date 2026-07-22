@@ -42,6 +42,7 @@ def conversation_summary(index=1, **overrides):
 
 def valid_request(**overrides):
     value = {
+        "title": "반복문 범위 오류",
         "message": "반복문 오류를 고쳐줘",
         "category_counts": all_category_counts(loop_control=7, variable_type=3),
         "recent_issues": [recent_issue()],
@@ -51,8 +52,11 @@ def valid_request(**overrides):
     return value
 
 
-def summary_payload(summary="사용자는 반복 범위 오류의 수정 방향을 질문했다."):
-    return {"conversation_summary": summary}
+def summary_payload(
+    title="반복문 범위 오류",
+    summary="사용자는 반복 범위 오류의 수정 방향을 질문했다.",
+):
+    return {"title": title, "conversation_summary": summary}
 
 
 class FakeModels:
@@ -74,6 +78,17 @@ class FakeClient:
 
 
 class RequestValidationTests(unittest.TestCase):
+    def test_accepts_empty_title_for_first_chat_and_trims_existing_title(self):
+        first = chatbot.validate_and_compact_request(
+            valid_request(title=""), CATEGORIES
+        )
+        existing = chatbot.validate_and_compact_request(
+            valid_request(title="  반복문 범위 오류  "), CATEGORIES
+        )
+
+        self.assertEqual(first["title"], "")
+        self.assertEqual(existing["title"], "반복문 범위 오류")
+
     def test_compact_payload_contains_only_learning_and_question_data(self):
         result = chatbot.validate_and_compact_request(valid_request(), CATEGORIES)
 
@@ -155,6 +170,7 @@ class RequestValidationTests(unittest.TestCase):
 
     def test_rejects_oversized_text_fields(self):
         cases = [
+            valid_request(title="t" * (chatbot.MAX_CHAT_TITLE_LENGTH + 1)),
             valid_request(message="m" * (chatbot.MAX_MESSAGE_LENGTH + 1)),
             valid_request(
                 recent_issues=[
@@ -234,36 +250,48 @@ class PromptAndModelTests(unittest.TestCase):
         prompt = chatbot.build_answer_prompt("request={{chat_request_json}}", request)
         self.assertIn('"message": "{{chat_request_json}}"', prompt)
 
-    def test_summary_prompt_contains_request_and_direct_markdown_answer(self):
-        template = "request={{chat_request_json}}\n\nanswer={{markdown_answer}}"
-        markdown = "## 수정 방향\n\n반복 범위를 확인하세요."
-        prompt = chatbot.build_summary_prompt(
-            template,
-            self.compact_request,
-            markdown,
-        )
+    def test_default_prompt_requires_title_first_then_direct_markdown(self):
+        template = Path(chatbot.DEFAULT_ANSWER_PROMPT_FILE).read_text(encoding="utf-8")
 
-        self.assertIn('"message"', prompt)
-        self.assertIn(markdown, prompt)
-        self.assertNotIn("{{chat_request_json}}", prompt)
-        self.assertNotIn("{{markdown_answer}}", prompt)
+        self.assertLess(template.index('"title"'), template.index('"conversation_summary"'))
+        self.assertIn("첫 번째 줄", template)
+        self.assertIn("두 번째 줄부터", template)
+        self.assertIn("빈 문자열", template)
+        self.assertIn("주제가 달라졌을 때", template)
+        self.assertIn("50자", template)
+        self.assertIn("둘 다 null", template)
 
     def test_normalizes_summary_string_and_null(self):
         self.assertEqual(
             chatbot.normalize_summary_response(summary_payload()),
-            summary_payload()["conversation_summary"],
+            summary_payload(),
         )
-        self.assertIsNone(
-            chatbot.normalize_summary_response(summary_payload(None))
+        self.assertEqual(
+            chatbot.normalize_summary_response(
+                summary_payload(title=None, summary=None)
+            ),
+            {"title": None, "conversation_summary": None},
         )
 
     def test_rejects_wrong_summary_shape_type_length_and_extra_fields(self):
         invalid = [
             {},
-            {"conversation_summary": 1},
-            {"conversation_summary": "null"},
-            {"conversation_summary": "가" * 301},
-            {"conversation_summary": "요약", "extra": True},
+            {"title": "제목"},
+            {
+                "conversation_summary": "요약",
+                "title": "제목",
+            },
+            summary_payload(title=1),
+            summary_payload(summary=1),
+            summary_payload(title=None),
+            summary_payload(summary=None),
+            summary_payload(title="null"),
+            summary_payload(summary="null"),
+            summary_payload(title="가" * 51),
+            summary_payload(title=(" " * 50) + "가"),
+            summary_payload(summary="가" * 301),
+            summary_payload(summary=(" " * 300) + "요약"),
+            {**summary_payload(), "extra": True},
         ]
         for payload in invalid:
             with self.subTest(payload=payload):
@@ -279,69 +307,71 @@ class PromptAndModelTests(unittest.TestCase):
                 with self.assertRaises(chatbot.ModelResponseError):
                     chatbot.parse_model_json(raw)
 
-    def test_markdown_generation_returns_model_text_without_json_parsing(self):
+    def test_splits_first_json_line_and_preserves_markdown_exactly(self):
+        markdown = "## 수정 방향\n\n  들여쓰기를 유지하세요.\n"
+        raw = f'{json.dumps(summary_payload(), ensure_ascii=False)}\n{markdown}'
+
+        result = chatbot.validate_chat_response(raw)
+
+        self.assertEqual(result.title, summary_payload()["title"])
+        self.assertEqual(
+            result.conversation_summary,
+            summary_payload()["conversation_summary"],
+        )
+        self.assertEqual(result.markdown_answer, markdown)
+
+    def test_splits_null_metadata_from_out_of_scope_markdown(self):
+        markdown = "Coding questions only."
+        raw = '{"title":null,"conversation_summary":null}\n' + markdown
+
+        result = chatbot.validate_chat_response(raw)
+
+        self.assertIsNone(result.title)
+        self.assertIsNone(result.conversation_summary)
+        self.assertEqual(result.markdown_answer, markdown)
+
+    def test_rejects_hybrid_response_without_valid_first_line_or_markdown(self):
+        valid_json = json.dumps(summary_payload(), ensure_ascii=False)
+        invalid = [
+            valid_json,
+            f"not json\n## 답변",
+            f"{valid_json}\n   ",
+            '{"conversation_summary":"요약","title":"제목"}\n## 답변',
+            '{"title":"이전","title":"새 제목","conversation_summary":"요약"}\n## 답변',
+        ]
+
+        for raw in invalid:
+            with self.subTest(raw=raw):
+                with self.assertRaises(chatbot.ModelResponseError):
+                    chatbot.validate_chat_response(raw)
+
+    def test_chat_generation_uses_one_plain_text_model_call(self):
         markdown = "## 수정 방향\n\n직접 범위를 수정해보세요."
-        client = FakeClient([markdown])
-        result = chatbot.generate_markdown_answer(
+        raw = f'{json.dumps(summary_payload(), ensure_ascii=False)}\n{markdown}'
+        client = FakeClient([raw])
+        result = chatbot.generate_chat_response(
             self.compact_request,
             client,
             model="gemini-test",
             template="{{chat_request_json}}",
         )
 
-        self.assertEqual(result, markdown)
+        self.assertEqual(result.title, summary_payload()["title"])
+        self.assertEqual(
+            result.conversation_summary,
+            summary_payload()["conversation_summary"],
+        )
+        self.assertEqual(result.markdown_answer, markdown)
         self.assertEqual(len(client.models.calls), 1)
         self.assertEqual(
             client.models.calls[0]["config"]["response_mime_type"], "text/plain"
         )
         self.assertEqual(client.models.calls[0]["config"]["max_output_tokens"], 4096)
 
-    def test_markdown_generation_rejects_old_json_answer_shape(self):
-        client = FakeClient(
-            [json.dumps({"answer_markdown": "## 잘못된 이전 형식"}, ensure_ascii=False)]
-        )
-        with self.assertRaises(chatbot.ModelResponseError):
-            chatbot.generate_markdown_answer(
-                self.compact_request,
-                client,
-                model="gemini-test",
-                template="{{chat_request_json}}",
-            )
-
-    def test_summary_generation_calls_gemini_separately_in_json_mode(self):
-        payload = summary_payload()
-        client = FakeClient([json.dumps(payload, ensure_ascii=False)])
-        result = chatbot.generate_conversation_summary(
-            self.compact_request,
-            "## 수정 방향\n\n반복 범위를 확인하세요.",
-            client,
-            model="gemini-test",
-            template="{{chat_request_json}}\n{{markdown_answer}}",
-        )
-
-        self.assertEqual(result, payload["conversation_summary"])
-        self.assertEqual(len(client.models.calls), 1)
-        self.assertEqual(
-            client.models.calls[0]["config"]["response_mime_type"],
-            "application/json",
-        )
-
-    def test_invalid_summary_json_fails_without_changing_markdown(self):
-        client = FakeClient(["not json"])
-        with self.assertRaises(chatbot.ModelResponseError):
-            chatbot.generate_conversation_summary(
-                self.compact_request,
-                "## 이미 생성된 Markdown",
-                client,
-                model="gemini-test",
-                template="{{chat_request_json}}\n{{markdown_answer}}",
-            )
-        self.assertEqual(len(client.models.calls), 1)
-
-    def test_markdown_transport_error_is_not_retried(self):
+    def test_chat_transport_error_is_not_retried(self):
         client = FakeClient([ConnectionError("offline")])
         with self.assertRaises(ConnectionError):
-            chatbot.generate_markdown_answer(
+            chatbot.generate_chat_response(
                 self.compact_request,
                 client,
                 model="gemini-test",
@@ -358,14 +388,12 @@ class ReplacementCleanupTests(unittest.TestCase):
                 os.chdir(other_directory)
                 categories = chatbot.load_categories()
                 answer_prompt = Path(chatbot.DEFAULT_ANSWER_PROMPT_FILE).read_text(encoding="utf-8")
-                summary_prompt = Path(chatbot.DEFAULT_SUMMARY_PROMPT_FILE).read_text(encoding="utf-8")
             finally:
                 os.chdir(original_cwd)
 
         self.assertEqual(len(categories), 46)
         self.assertIn("{{chat_request_json}}", answer_prompt)
-        self.assertIn("{{chat_request_json}}", summary_prompt)
-        self.assertIn("{{markdown_answer}}", summary_prompt)
+        self.assertFalse(Path("prompts/coding_learning_chat_summary_prompt.md").exists())
 
     def test_old_chatbot_contract_and_cross_feature_imports_are_absent(self):
         source = Path("learning_chatbot.py").read_text(encoding="utf-8")
