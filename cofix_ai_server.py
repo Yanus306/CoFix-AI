@@ -76,6 +76,7 @@ def _analysis_request_to_mapping(request):
     code = request.code.strip()
     if not code:
         raise RuntimeError("code must be a non-empty string.")
+    patch_text = request.patch
     recent_issues = [
         analysis.normalize_recent_issue(item, index)
         for index, item in enumerate(
@@ -84,6 +85,7 @@ def _analysis_request_to_mapping(request):
     ]
     return {
         "code": code,
+        "patch": patch_text,
         "learning_context": {"recent_issues": recent_issues},
     }
 
@@ -197,9 +199,14 @@ class CodeAnalysisServicer(analysis_grpc.CodeAnalysisServiceServicer):
 
         def generate(request):
             code = request["code"]
+            patch_text = request["patch"]
             recent_issues = request["learning_context"]["recent_issues"]
             raw = analysis.request_ai_feedback(
-                code, self._categories, recent_issues, args
+                code,
+                self._categories,
+                recent_issues,
+                args,
+                patch=patch_text,
             )
             return analysis.build_api_response(
                 analysis.normalize_feedback(raw, self._categories)

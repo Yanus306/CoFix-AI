@@ -1,6 +1,7 @@
 """Generate Python protobuf and gRPC bindings outside the schema submodule."""
 
 import argparse
+import re
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -36,7 +37,18 @@ def _run_protoc(arguments):
 def _generated_module_text(path):
     text = path.read_text(encoding="utf-8")
     text = text.replace("from proto import ", "from generated_proto import ")
-    return text.replace("'proto.", "'generated_proto.")
+    text = re.sub(
+        r"^import ([A-Za-z0-9_]+_pb2) as ",
+        r"from generated_proto import \1 as ",
+        text,
+        flags=re.MULTILINE,
+    )
+    text = text.replace("'proto.", "'generated_proto.")
+    return re.sub(
+        r"(BuildTopDescriptorsAndMessages\(DESCRIPTOR, )'([^']+)'",
+        r"\1'generated_proto.\2'",
+        text,
+    )
 
 
 def generate(output_dir=OUTPUT_DIR):
@@ -53,13 +65,13 @@ def generate(output_dir=OUTPUT_DIR):
     )
     with TemporaryDirectory(prefix="cofix-proto-") as temporary_directory:
         temporary_root = Path(temporary_directory)
-        common = [f"-I{PROJECT_ROOT}"]
+        common = [f"-I{SCHEMA_DIR}"]
         schema_paths = [str(SCHEMA_DIR / name) for name in PROTO_FILES]
         service_paths = [str(SCHEMA_DIR / name) for name in SERVICE_PROTO_FILES]
         _run_protoc([*common, f"--python_out={temporary_root}", *schema_paths])
         _run_protoc([*common, f"--grpc_python_out={temporary_root}", *service_paths])
 
-        generated_source = temporary_root / "proto"
+        generated_source = temporary_root
         expected = set()
         for source in generated_source.glob("*_pb2*.py"):
             destination = output_dir / source.name

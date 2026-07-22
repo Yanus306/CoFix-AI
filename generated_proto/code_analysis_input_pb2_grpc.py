@@ -3,8 +3,8 @@
 import grpc
 import warnings
 
-from generated_proto import code_analysis_input_pb2 as proto_dot_code__analysis__input__pb2
-from generated_proto import code_analysis_output_pb2 as proto_dot_code__analysis__output__pb2
+from generated_proto import code_analysis_input_pb2 as code__analysis__input__pb2
+from generated_proto import code_analysis_output_pb2 as code__analysis__output__pb2
 
 GRPC_GENERATED_VERSION = '1.82.1'
 GRPC_VERSION = grpc.__version__
@@ -19,7 +19,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + ' but the generated code in proto/code_analysis_input_pb2_grpc.py depends on'
+        + ' but the generated code in code_analysis_input_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
@@ -37,8 +37,8 @@ class CodeAnalysisServiceStub:
         """
         self.AnalyzeCode = channel.unary_unary(
                 '/cofix.analysis.v1.CodeAnalysisService/AnalyzeCode',
-                request_serializer=proto_dot_code__analysis__input__pb2.AnalyzeCodeRequest.SerializeToString,
-                response_deserializer=proto_dot_code__analysis__output__pb2.AnalyzeCodeResponse.FromString,
+                request_serializer=code__analysis__input__pb2.AnalyzeCodeRequest.SerializeToString,
+                response_deserializer=code__analysis__output__pb2.AnalyzeCodeResponse.FromString,
                 _registered_method=True)
 
 
@@ -56,8 +56,8 @@ def add_CodeAnalysisServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'AnalyzeCode': grpc.unary_unary_rpc_method_handler(
                     servicer.AnalyzeCode,
-                    request_deserializer=proto_dot_code__analysis__input__pb2.AnalyzeCodeRequest.FromString,
-                    response_serializer=proto_dot_code__analysis__output__pb2.AnalyzeCodeResponse.SerializeToString,
+                    request_deserializer=code__analysis__input__pb2.AnalyzeCodeRequest.FromString,
+                    response_serializer=code__analysis__output__pb2.AnalyzeCodeResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -85,8 +85,8 @@ class CodeAnalysisService:
             request,
             target,
             '/cofix.analysis.v1.CodeAnalysisService/AnalyzeCode',
-            proto_dot_code__analysis__input__pb2.AnalyzeCodeRequest.SerializeToString,
-            proto_dot_code__analysis__output__pb2.AnalyzeCodeResponse.FromString,
+            code__analysis__input__pb2.AnalyzeCodeRequest.SerializeToString,
+            code__analysis__output__pb2.AnalyzeCodeResponse.FromString,
             options,
             channel_credentials,
             insecure,

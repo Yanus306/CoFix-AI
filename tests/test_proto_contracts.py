@@ -29,17 +29,17 @@ class SplitProtoContractTests(unittest.TestCase):
     def test_each_input_imports_its_output_and_declares_expected_service_shape(self):
         expected = {
             "code_analysis_input.proto": (
-                'import "proto/code_analysis_output.proto";',
+                'import "code_analysis_output.proto";',
                 "service CodeAnalysisService",
                 "rpc AnalyzeCode(AnalyzeCodeRequest) returns (AnalyzeCodeResponse);",
             ),
             "issue_quiz_input.proto": (
-                'import "proto/issue_quiz_output.proto";',
+                'import "issue_quiz_output.proto";',
                 "service IssueQuizService",
                 "rpc GenerateIssueQuiz(GenerateIssueQuizRequest) returns (GenerateIssueQuizResponse);",
             ),
             "learning_chat_input.proto": (
-                'import "proto/learning_chat_output.proto";',
+                'import "learning_chat_output.proto";',
                 "service LearningChatbotService",
                 "rpc Chat(ChatRequest) returns (stream ChatStreamResponse);",
             ),
@@ -60,7 +60,14 @@ class SplitProtoContractTests(unittest.TestCase):
 
         self.assertEqual(
             list(analysis_in.AnalyzeCodeRequest.DESCRIPTOR.fields_by_name),
-            ["code", "learning_context"],
+            ["code", "patch", "learning_context"],
+        )
+        self.assertEqual(
+            [
+                (field.name, field.number)
+                for field in analysis_in.AnalyzeCodeRequest.DESCRIPTOR.fields
+            ],
+            [("code", 2), ("patch", 3), ("learning_context", 4)],
         )
         self.assertEqual(
             list(analysis_out.CodeIssue.DESCRIPTOR.fields_by_name),
@@ -124,6 +131,19 @@ class SplitProtoContractTests(unittest.TestCase):
         forbidden = "user" + "_id"
         for source in (analysis_input, analysis_output, chat_input):
             self.assertNotIn(forbidden, source)
+
+    def test_be_java_options_for_code_analysis_are_preserved(self):
+        source = Path("proto/code_analysis_input.proto").read_text(encoding="utf-8")
+
+        self.assertIn("option java_multiple_files = true;", source)
+        self.assertIn(
+            'option java_package = "kr.jongyeol.cofix.grpc.analyze";',
+            source,
+        )
+        self.assertIn(
+            'option java_outer_classname = "CodeAnalysisServiceProto";',
+            source,
+        )
 
 
 if __name__ == "__main__":

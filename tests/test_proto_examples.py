@@ -46,8 +46,16 @@ class TextProtoExampleTests(unittest.TestCase):
         chat_summary = parsed["learning_chat_summary_response.textproto"]
 
         self.assertTrue(analysis_request.code)
+        self.assertNotIn("range(len(values) + 1)", analysis_request.code)
+        self.assertIn("@@ -3 +3 @@", analysis_request.patch)
         self.assertGreaterEqual(len(analysis_request.learning_context.recent_issues), 1)
-        self.assertEqual(len(analysis_response.issues), 2)
+        self.assertEqual(
+            [issue.dataset for issue in analysis_response.issues],
+            ["edge_case"],
+        )
+        self.assertTrue(
+            all(issue.code in analysis_request.code for issue in analysis_response.issues)
+        )
         self.assertTrue(all(issue.label for issue in analysis_response.issues))
         self.assertEqual(quiz_request.problem_count, 3)
         self.assertEqual(len(quiz_response.problems), 3)

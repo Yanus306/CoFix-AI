@@ -23,7 +23,7 @@ RECENT_ISSUE_FIELDS = (
     "code",
     "guide",
 )
-ANALYSIS_REQUEST_FIELDS = {"code", "learning_context"}
+ANALYSIS_REQUEST_FIELDS = {"code", "patch", "learning_context"}
 LEARNING_CONTEXT_FIELDS = {"recent_issues"}
 OUTPUT_ISSUE_FIELDS = {
     "code",
@@ -183,12 +183,17 @@ def read_analysis_request(args):
     if not isinstance(request, dict):
         raise RuntimeError("BE analysis request must be one JSON object.")
     if set(request) != ANALYSIS_REQUEST_FIELDS:
-        raise RuntimeError("BE analysis request fields must be exactly: code, learning_context.")
+        raise RuntimeError(
+            "BE analysis request fields must be exactly: code, patch, learning_context."
+        )
 
     code = request.get("code")
+    patch_text = request.get("patch")
     learning_context = request.get("learning_context")
     if not isinstance(code, str) or not code.strip():
         raise RuntimeError("BE analysis request code must be a non-empty string.")
+    if not isinstance(patch_text, str):
+        raise RuntimeError("BE analysis request patch must be a string.")
     if not isinstance(learning_context, dict):
         raise RuntimeError("BE analysis request learning_context must be an object.")
     if set(learning_context) != LEARNING_CONTEXT_FIELDS:
@@ -198,7 +203,7 @@ def read_analysis_request(args):
     if not isinstance(raw_issues, list):
         raise RuntimeError("BE analysis request recent_issues must be an array.")
     recent_issues = [normalize_recent_issue(item, index) for index, item in enumerate(raw_issues)]
-    return code, recent_issues, source_name
+    return code, patch_text, recent_issues, source_name
 
 
 def add_line_numbers(code):
@@ -211,17 +216,28 @@ def json_text(data):
     return json.dumps(data, ensure_ascii=False, indent=2)
 
 
-def build_prompt(template, code, categories, recent_issues):
-    replacements = {
-        "{{categories_json}}": json_text(categories),
-        "{{recent_issues_json}}": json_text(recent_issues),
-        "{{code}}": add_line_numbers(code),
-    }
-    placeholder_pattern = re.compile(
-        "|".join(re.escape(key) for key in sorted(replacements, key=len, reverse=True))
+def build_prompt_parts(template, code, categories, recent_issues, *, patch=""):
+    system_instruction = f"{template.rstrip()}\n\n{CODE_CONTEXT_INSTRUCTION}"
+    user_payload = json_text(
+        {
+            "categories": categories,
+            "recent_issues": recent_issues,
+            "patch": patch,
+            "code_with_line_numbers": add_line_numbers(code),
+        }
     )
-    prompt = placeholder_pattern.sub(lambda match: replacements[match.group(0)], template)
-    return f"{prompt.rstrip()}\n\n{CODE_CONTEXT_INSTRUCTION}"
+    return system_instruction, user_payload
+
+
+def request_analysis_model(client, model, system_instruction, user_payload):
+    return client.models.generate_content(
+        model=model,
+        contents=user_payload,
+        config={
+            "system_instruction": system_instruction,
+            "response_mime_type": "application/json",
+        },
+    )
 
 
 def extract_text(response):
@@ -255,7 +271,7 @@ def extract_json_object(text):
     return stripped
 
 
-def request_ai_feedback(code, categories, recent_issues, args):
+def request_ai_feedback(code, categories, recent_issues, args, *, patch=""):
     load_env_file(args.env_file)
     if not os.environ.get(GEMINI_API_KEY_ENV):
         raise RuntimeError(f"{GEMINI_API_KEY_ENV} is not set.")
@@ -265,12 +281,20 @@ def request_ai_feedback(code, categories, recent_issues, args):
         raise RuntimeError("google-genai is not installed. Run: pip install -r requirements.txt") from exc
 
     prompt_template = read_text(args.prompt_file)
-    prompt = build_prompt(prompt_template, code, categories, recent_issues)
+    system_instruction, user_payload = build_prompt_parts(
+        prompt_template,
+        code,
+        categories,
+        recent_issues,
+        patch=patch,
+    )
     client = genai.Client()
-    if hasattr(client, "interactions"):
-        response = client.interactions.create(model=args.model, input=prompt)
-    else:
-        response = client.models.generate_content(model=args.model, contents=prompt)
+    response = request_analysis_model(
+        client,
+        args.model,
+        system_instruction,
+        user_payload,
+    )
 
     raw_text = extract_text(response)
     try:
@@ -340,21 +364,96 @@ def normalize_learning_tags(value, fallback=None):
     return tags
 
 
+GUIDE_SECTIONS = (
+    ("problem", "🚨", "문제", "🚨 ## 문제"),
+    ("solution", "💡", "해결", "💡 ## 해결"),
+    ("principle", "✨", "핵심 원리", "✨ ## 핵심 원리"),
+)
+
+
+def parse_guide_sections(raw):
+    sections = {key: [] for key, *_ in GUIDE_SECTIONS}
+    current_section = None
+    found_sections = set()
+
+    for raw_line in raw.splitlines():
+        line = raw_line.strip()
+        matched_header = False
+        if line:
+            for key, emoji, label, _header in GUIDE_SECTIONS:
+                match = re.fullmatch(
+                    rf"{re.escape(emoji)}\s*(?:##\s*)?{re.escape(label)}(?:\s*:\s*(.*))?",
+                    line,
+                )
+                if match:
+                    current_section = key
+                    found_sections.add(key)
+                    inline_content = (match.group(1) or "").strip()
+                    if inline_content:
+                        sections[key].append(inline_content)
+                    matched_header = True
+                    break
+        if not matched_header and current_section is not None:
+            sections[current_section].append(raw_line)
+
+    if found_sections != set(sections):
+        return None
+    return sections
+
+
+def format_guide_sections(sections):
+    lines = []
+    for key, _emoji, _label, header in GUIDE_SECTIONS:
+        lines.append(header)
+        lines.extend(sections[key])
+    return "\n".join(lines)
+
+
+def has_meaningful_guide_content(lines):
+    return any(line.strip() for line in lines)
+
+
+def has_exact_guide_headers(raw):
+    lines = raw.splitlines()
+    position = -1
+    for _key, _emoji, _label, header in GUIDE_SECTIONS:
+        try:
+            position = lines.index(header, position + 1)
+        except ValueError:
+            return False
+    return True
+
+
 def normalize_guide_text(title, description, guide, learning_directions):
-    raw = guide.strip() if isinstance(guide, str) else ""
-    if raw and all(marker in raw for marker in ("🚨 문제", "💡 해결", "✨ 핵심 원리")):
-        return raw
-    solution_title = learning_directions[0] if learning_directions else "권장 학습 방향 적용"
-    return "\n".join(
-        [
-            f"🚨 문제: {title or '코드 문제'}",
-            description or "코드 실행 결과에 영향을 주는 문제가 있습니다.",
-            f"💡 해결: {solution_title}",
-            description or "문제 원인과 실행 흐름을 확인하고 해당 상황을 처리해야 합니다.",
-            "✨ 핵심 원리",
-            description or "입력 조건과 실행 흐름을 먼저 확인하면 같은 오류의 반복을 줄일 수 있습니다.",
-        ]
+    raw = guide if isinstance(guide, str) else ""
+    parsed_sections = parse_guide_sections(raw) if raw.strip() else None
+
+    problem_description = description or "코드 실행 결과에 영향을 주는 문제가 있습니다."
+    solution_description = (
+        description
+        or "문제 원인과 실행 흐름을 확인하고 해당 상황을 처리해야 합니다."
     )
+    principle_description = (
+        description
+        or "입력 조건과 실행 흐름을 먼저 확인하면 같은 오류의 반복을 줄일 수 있습니다."
+    )
+    solution_title = learning_directions[0] if learning_directions else "권장 학습 방향 적용"
+    fallback_sections = {
+        "problem": [title or "코드 문제", problem_description],
+        "solution": [solution_title, solution_description],
+        "principle": [principle_description],
+    }
+    if parsed_sections:
+        if has_exact_guide_headers(raw) and all(
+            has_meaningful_guide_content(lines)
+            for lines in parsed_sections.values()
+        ):
+            return raw
+        for key, lines in parsed_sections.items():
+            if not has_meaningful_guide_content(lines):
+                parsed_sections[key] = fallback_sections[key]
+        return format_guide_sections(parsed_sections)
+    return format_guide_sections(fallback_sections)
 
 
 def normalize_feedback(data, categories):
@@ -423,8 +522,14 @@ def main():
     args = parse_args()
     try:
         categories = read_json(args.categories, [])
-        code, recent_issues, _source_name = read_analysis_request(args)
-        raw_feedback = request_ai_feedback(code, categories, recent_issues, args)
+        code, patch_text, recent_issues, _source_name = read_analysis_request(args)
+        raw_feedback = request_ai_feedback(
+            code,
+            categories,
+            recent_issues,
+            args,
+            patch=patch_text,
+        )
         output = json_text(build_api_response(normalize_feedback(raw_feedback, categories))) + "\n"
         if args.output:
             Path(args.output).write_text(output, encoding="utf-8")

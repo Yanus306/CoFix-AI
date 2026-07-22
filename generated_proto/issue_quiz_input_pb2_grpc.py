@@ -3,8 +3,8 @@
 import grpc
 import warnings
 
-from generated_proto import issue_quiz_input_pb2 as proto_dot_issue__quiz__input__pb2
-from generated_proto import issue_quiz_output_pb2 as proto_dot_issue__quiz__output__pb2
+from generated_proto import issue_quiz_input_pb2 as issue__quiz__input__pb2
+from generated_proto import issue_quiz_output_pb2 as issue__quiz__output__pb2
 
 GRPC_GENERATED_VERSION = '1.82.1'
 GRPC_VERSION = grpc.__version__
@@ -19,7 +19,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + ' but the generated code in proto/issue_quiz_input_pb2_grpc.py depends on'
+        + ' but the generated code in issue_quiz_input_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
@@ -37,8 +37,8 @@ class IssueQuizServiceStub:
         """
         self.GenerateIssueQuiz = channel.unary_unary(
                 '/cofix.quiz.v1.IssueQuizService/GenerateIssueQuiz',
-                request_serializer=proto_dot_issue__quiz__input__pb2.GenerateIssueQuizRequest.SerializeToString,
-                response_deserializer=proto_dot_issue__quiz__output__pb2.GenerateIssueQuizResponse.FromString,
+                request_serializer=issue__quiz__input__pb2.GenerateIssueQuizRequest.SerializeToString,
+                response_deserializer=issue__quiz__output__pb2.GenerateIssueQuizResponse.FromString,
                 _registered_method=True)
 
 
@@ -56,8 +56,8 @@ def add_IssueQuizServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'GenerateIssueQuiz': grpc.unary_unary_rpc_method_handler(
                     servicer.GenerateIssueQuiz,
-                    request_deserializer=proto_dot_issue__quiz__input__pb2.GenerateIssueQuizRequest.FromString,
-                    response_serializer=proto_dot_issue__quiz__output__pb2.GenerateIssueQuizResponse.SerializeToString,
+                    request_deserializer=issue__quiz__input__pb2.GenerateIssueQuizRequest.FromString,
+                    response_serializer=issue__quiz__output__pb2.GenerateIssueQuizResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -85,8 +85,8 @@ class IssueQuizService:
             request,
             target,
             '/cofix.quiz.v1.IssueQuizService/GenerateIssueQuiz',
-            proto_dot_issue__quiz__input__pb2.GenerateIssueQuizRequest.SerializeToString,
-            proto_dot_issue__quiz__output__pb2.GenerateIssueQuizResponse.FromString,
+            issue__quiz__input__pb2.GenerateIssueQuizRequest.SerializeToString,
+            issue__quiz__output__pb2.GenerateIssueQuizResponse.FromString,
             options,
             channel_credentials,
             insecure,

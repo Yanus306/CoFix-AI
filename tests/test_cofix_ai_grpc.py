@@ -14,15 +14,25 @@ from generated_proto import learning_chat_input_pb2 as chat_in
 from generated_proto import learning_chat_input_pb2_grpc as chat_grpc
 
 
+ANALYSIS_PATCH = (
+    "--- a/calculate.py\n"
+    "+++ b/calculate.py\n"
+    "@@ -3 +3 @@\n"
+    "-    for i in range(len(values) + 1):\n"
+    "+    for i in range(len(values)):"
+)
+
+
 def analysis_request():
     return analysis_in.AnalyzeCodeRequest(
         code=(
             "def calculate_average(values):\n"
             "    total = 0\n"
-            "    for i in range(len(values) + 1):\n"
+            "    for i in range(len(values)):\n"
             "        total += values[i]\n"
             "    return total / len(values)"
         ),
+        patch=ANALYSIS_PATCH,
         learning_context=analysis_in.LearningContext(
             recent_issues=[
                 analysis_in.RecentIssue(
@@ -102,6 +112,18 @@ def chat_request(message="반복문 오류를 고쳐줘"):
 
 
 class UnifiedGrpcServerTests(unittest.TestCase):
+    def test_analysis_request_mapping_preserves_raw_patch(self):
+        mapped = server_module._analysis_request_to_mapping(analysis_request())
+
+        self.assertEqual(mapped["patch"], ANALYSIS_PATCH)
+
+        request_without_patch = analysis_request()
+        request_without_patch.patch = ""
+        self.assertEqual(
+            server_module._analysis_request_to_mapping(request_without_patch)["patch"],
+            "",
+        )
+
     def start_server(
         self,
         *,
@@ -120,7 +142,7 @@ class UnifiedGrpcServerTests(unittest.TestCase):
                         "description": "마지막 반복에서 유효하지 않은 인덱스에 접근합니다.",
                         "learning_directions": ["반복문 범위", "오프바이원 오류"],
                         "dataset": "loop_control",
-                        "guide": "🚨 문제: 범위 초과\n💡 해결: 반복 범위 수정\n✨ 핵심 원리\n유효 인덱스를 확인한다.",
+                        "guide": "🚨 ## 문제\n범위 초과\n💡 ## 해결\n반복 범위 수정\n✨ ## 핵심 원리\n유효 인덱스를 확인한다.",
                     }
                 ],
             }
